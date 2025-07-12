@@ -23,36 +23,58 @@ addr = "00:19:08:36:3F:5C"
 class TabViewWidget(QWidget):
     def __init__(self, tab_widget_mapping: dict[str, QWidget], bar_orientation: Literal["vertical", "horizontal"]):
         super().__init__()
-        layout_type = QHBoxLayout if bar_orientation == "horizontal" else QVBoxLayout
-        
-        layout = layout_type()
-        self.setLayout(layout)
-        
         assert bar_orientation in ("vertical", "horizontal"), f"Invalid orientation: {bar_orientation}"
         
+        tab_layout_type = QHBoxLayout if bar_orientation == "horizontal" else QVBoxLayout
+        main_layout_type = QHBoxLayout if bar_orientation == "vertical" else QVBoxLayout
+        
+        layout = main_layout_type()
+        self.setLayout(layout)
+        
+        self.tab_buttons: list[QPushButton] = []
+        
         tab_widget = QWidget()
-        tab_layout = layout_type()
+        tab_widget.setContentsMargins(0, 0, 0, 0)
+        
+        tab_layout = tab_layout_type()
         tab_widget.setLayout(tab_layout)
         
-        self.tab_widget_mapping = tab_widget_mapping
         self.bar_orientation = bar_orientation
         
-        stack = QStackedWidget()
+        self.stack = QStackedWidget()
         
-        for tab_name, widget in tab_widget_mapping.items():
+        for index, (tab_name, widget) in enumerate(tab_widget_mapping.items()):
             tab_button = QPushButton(tab_name)
-            tab_button.clicked.connect(self.make_tab_clicked_func())
+            tab_button.setCheckable(True)
+            tab_button.clicked.connect(self._make_tab_clicked_func(index))
             tab_button.setProperty("class", "HorizontalTab" if bar_orientation == "horizontal" else "VerticalTab")
+            tab_button.setContentsMargins(0, 0, 0, 0)
             
             tab_layout.addWidget(tab_button)
-            stack.addWidget(widget)
+            self.stack.addWidget(widget)
+            widget.setContentsMargins(0, 0, 0, 0)
+            
+            self.tab_buttons.append(tab_button)
+        
+        if bar_orientation == "vertical":
+            tab_layout.addStretch()
+        
+        self.setContentsMargins(0, 0, 0, 0)
+        tab_widget.setContentsMargins(0, 0, 0, 0)
+        self.stack.setContentsMargins(0, 0, 0, 0)
         
         layout.addWidget(tab_widget)
-        layout.addWidget(stack)
+        layout.addWidget(self.stack)
+        
+        self.tab_buttons[0].click()
     
-    def make_tab_clicked_func(self, index: int):
+    def _make_tab_clicked_func(self, index: int):
         def func():
-            pass
+            self.stack.setCurrentIndex(index)
+            
+            for i, button in enumerate(self.tab_buttons):
+                if i != index:
+                    button.setChecked(False)
         
         return func
 
@@ -80,14 +102,7 @@ class Window(QMainWindow):
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         
         # Create stacked widget for content
-        stack = QStackedWidget()
-        
-        self.school_manager = SchoolManager()
-        
-        stack.addWidget(self.school_manager)
-        
-        # Add widgets to main layout
-        main_layout.addWidget(stack)
+        main_layout.addWidget(TabViewWidget({"Attendance": TabViewWidget({"Attendance": SchoolManager(), "Security": SchoolManager(), "Safety": SchoolManager()}, "vertical"), "Security": SchoolManager(), "Safety": SchoolManager()}, "horizontal"))
         
         self.setCentralWidget(container)
     

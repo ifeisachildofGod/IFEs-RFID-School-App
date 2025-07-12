@@ -177,6 +177,7 @@ stylesheet = '''
       color: {text};
       font-family: 'Segoe UI', sans-serif;
       font-size: 13px;
+      margin: 0px
     }}
 
     QLineEdit, QTextEdit, QPlainTextEdit {{
@@ -189,7 +190,7 @@ stylesheet = '''
 
     QPushButton {{
       background-color: {primary};
-      color: white;
+      color: {text};
       border: none;
       border-radius: 4px;
       padding: 6px 12px;
@@ -283,11 +284,47 @@ stylesheet = '''
       gridline-color: {border};
       selection-background-color: {highlight};
     }}
-
-    QWidget.TeacherWidget * {{
-        border: 2px solid red;
+    
+    QPushButton.VerticalTab {{
+        width: 100%;
+        height: 50px;
+        border-radius: 0px;
+        border-left: 3px solid {bg2};
+        background-color: {bg2};
+    }}
+    
+    QPushButton.VerticalTab:checked {{
+        border-left-color: {primary};
+        background-color: {secondary};
+    }}
+    
+    QPushButton.VerticalTab:checked:hover {{
+        background-color: {hover3};
+    }}
+    
+    QPushButton.HorizontalTab {{
+        width: 100%;
+        height: 30px;
+        border-top: 3px solid {bg2};
+        background-color: {bg2};
+        border-radius: 0px;
+    }}
+    
+    QPushButton.HorizontalTab:hover {{
+      border-top-color: {hover2};
+      background-color: {hover2};
+    }}
+    
+    QPushButton.HorizontalTab:checked {{
+        border-top-color: {primary};
+        background-color: {secondary};
+    }}
+    
+    QPushButton.HorizontalTab:checked:hover {{
+        background-color: {hover3};
     }}
 '''
+
 
 class ThemeManager:
     def __init__(self):

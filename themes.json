@@ -1,6 +1,7 @@
 {
   "light":{
     "bg": "#ffffff",
+    "bg2": "#fefefe",
     "text": "#1a1a1a",
     "primary": "#0078d4",
     "primary_hover": "#2899f5",
@@ -19,9 +20,12 @@
   
   "dark": {
     "bg": "#1e1e1e",
+    "bg2": "#2b2b2c",
     "text": "#f0f0f0",
     "primary": "#0e639c",
     "primary_hover": "#1177bb",
+    "hover2": "#353536",
+    "hover3": "#47474b",
     "primary_pressed": "#0b5081",
     "secondary": "#3a3a3d",
     "border": "#444",
