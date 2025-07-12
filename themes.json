@@ -1,0 +1,37 @@
+{
+  "light":{
+    "bg": "#ffffff",
+    "text": "#1a1a1a",
+    "primary": "#0078d4",
+    "primary_hover": "#2899f5",
+    "primary_pressed": "#005a9e",
+    "secondary": "#f0f0f0",
+    "border": "#ccc",
+    "input_bg": "#ffffff",
+    "input_border": "#bbb",
+    "scrollbar": "#999",
+    "highlight": "#e5f1fb",
+    "tooltip_bg": "#fefefe",
+    "tooltip_text": "#111",
+    "error": "#d32f2f",
+    "disabled": "#aaa"
+  },
+  
+  "dark": {
+    "bg": "#1e1e1e",
+    "text": "#f0f0f0",
+    "primary": "#0e639c",
+    "primary_hover": "#1177bb",
+    "primary_pressed": "#0b5081",
+    "secondary": "#3a3a3d",
+    "border": "#444",
+    "input_bg": "#2d2d30",
+    "input_border": "#555",
+    "scrollbar": "#555",
+    "highlight": "#007acc",
+    "tooltip_bg": "#333",
+    "tooltip_text": "#eee",
+    "error": "#ff4c4c",
+    "disabled": "#777"
+  }
+}
