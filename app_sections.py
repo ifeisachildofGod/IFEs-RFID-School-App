@@ -36,7 +36,7 @@ class SchoolManager(QWidget):
         #         "Parade Commander",
         #         Class("212123321231212123113", "SS2", "D", "SS2 D"),
         #         "img.png",
-        #         PrefectDuty(True, False)
+        #         ["Morning", "Labour", "Cadet training"]
         #         )
         #     )
         
@@ -81,9 +81,23 @@ class SchoolManager(QWidget):
                         "img.png"
                 )
             )
-            widget.setProperty("class", "TeacherWidget")
-            self.main_layout.insertWidget(
-                len(self.main_layout.children()) - 1, widget, alignment=Qt.AlignmentFlag.AlignTop)
+            
+            self.main_layout.insertWidget(len(self.main_layout.children()) - 1, widget, alignment=Qt.AlignmentFlag.AlignTop)
+        elif a0.text() == "p":
+            widget = PrefectWidget(
+                Prefect(
+                    "12010232012",
+                    CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma E.U"),
+                    "Parade Commander",
+                    Class("212123321231212123113", "SS2", "D", "SS2 D"),
+                    "img.png",
+                    ["Morning", "Labour", "Cadet training"]
+                )
+            )
+            
+            self.main_layout.insertWidget(len(self.main_layout.children()) - 1, widget, alignment=Qt.AlignmentFlag.AlignTop)
+        
+        
         return super().keyPressEvent(a0)
         
         

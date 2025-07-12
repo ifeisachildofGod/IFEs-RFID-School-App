@@ -34,7 +34,7 @@ class TabViewWidget(QWidget):
         container = QWidget()
         layout = main_layout_type()
         container.setLayout(layout)
-        container.setStyleSheet("border: 2px solid red;")
+        
         self.tab_buttons: list[QPushButton] = []
         
         tab_widget = QWidget()

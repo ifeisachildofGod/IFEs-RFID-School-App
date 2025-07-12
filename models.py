@@ -58,7 +58,7 @@ class Prefect:
     post_name: str
     cls: Class
     img_path: str | PathLike
-    duty: PrefectDuty
+    duties: list[str]
     punctuality: float = 1.0
     popularity: float = 1.0
 

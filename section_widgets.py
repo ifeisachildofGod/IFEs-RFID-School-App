@@ -19,8 +19,26 @@ from theme import THEME_MANAGER
 class BaseWidget(QWidget):
     def __init__(self, layout_type: type[QHBoxLayout] | type[QVBoxLayout] = QHBoxLayout):
         super().__init__()
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        self.container = QWidget()
+        
         self.main_layout = layout_type()
-        self.setLayout(self.main_layout)
+        self.container.setLayout(self.main_layout)
+        
+        layout.addWidget(self.container)
+    
+    def positionify(self, number: str, default: str | None = ...):
+        suffix = ("st" if number.endswith("1") and number != "11" else ("nd" if number.endswith("2") and number != "12" else "rd" if number.endswith("3") and number != "13" else "th"))
+        
+        if not number.isnumeric():
+            if not isinstance(default, ellipsis):
+                suffix = (default if default is not None else "")
+            else:
+                raise Exception(f"Text: ({number}) is not numeric")
+            
+        return number + suffix
     
     def create_widget(self, parent_layout: QLayout | None, layout_type: type[QHBoxLayout] | type[QVBoxLayout] | type[QGridLayout]):
         widget = QWidget()
@@ -84,10 +102,11 @@ class CharacterNameWidget(QWidget):
         self.main_layout.addWidget(LabeledField("Names", widget_2_1))
 
 class LabeledField(QWidget):
-    def __init__(self, title: str, inner_widget: QWidget, parent=None):
+    def __init__(self, title: str, inner_widget: QWidget, min_size: bool = True, parent=None):
         super().__init__(parent)
         
-        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
+        if min_size:
+            self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
         
         self.setStyleSheet("""
             #TitleLabel {
@@ -133,13 +152,13 @@ class TeacherWidget(BaseWidget):
     def __init__(self, teacher: Teacher):
         super().__init__()
         # self.theme = Theme()
-        self.setProperty("class", "TeacherWidget")
+        self.container.setProperty("class", "TeacherWidget")
         
         self.teacher = teacher
         
         _, layout_1 = self.create_widget(self.main_layout, QVBoxLayout)
         
-        label = QLabel(self)
+        label = QLabel(self.container)
         pixmap = QPixmap(self.teacher.img_path)
         label.setPixmap(pixmap)
         label.setScaledContents(True)  # Optional: scale image to fit label
@@ -178,7 +197,7 @@ class TeacherWidget(BaseWidget):
         
         widget_2_2_2, layout_2_2_2 = self.create_scrollable_widget(None, QVBoxLayout)
         
-        layout_2_2.addWidget(LabeledField("Subjects", widget_2_2_2))
+        layout_2_2.addWidget(LabeledField("Subjects", widget_2_2_2, False))
         
         periods_data = {}
         
@@ -204,16 +223,6 @@ class TeacherWidget(BaseWidget):
                 layout_2_2_2_1.addWidget(LabeledField(cls_name, widget_2_2_2_1_1), int(index / 3), index % 3)
             layout_2_2_2.addWidget(LabeledField(subject_name, widget_2_2_2_1))
     
-    def positionify(self, number: str, default: str | None = ...):
-        suffix = ("st" if number.endswith("1") and number != "11" else ("nd" if number.endswith("2") and number != "12" else "rd" if number.endswith("3") and number != "13" else "th"))
-        
-        if not number.isnumeric():
-            if not isinstance(default, ellipsis):
-                suffix = (default if default is not None else "")
-            else:
-                raise Exception(f"Text: ({number}) is not numeric")
-            
-        return number + suffix
             
             
         
@@ -223,36 +232,58 @@ class PrefectWidget(BaseWidget):
     def __init__(self, prefect: Prefect):
         super().__init__()
         # self.theme = Theme()
+        self.container.setProperty("class", "PrefectWidget")
+        
         self.prefect = prefect
         
         _, layout_1 = self.create_widget(self.main_layout, QVBoxLayout)
         
-        image_label = QLabel(self)
+        label = QLabel(self.container)
         pixmap = QPixmap(self.prefect.img_path)
-        image_label.setPixmap(pixmap)
-        # image_label.resize(100, 100)
-        image_label.setFixedSize(250, 250)
-        image_label.setScaledContents(True)  # Optional: scale image to fit label
+        label.setPixmap(pixmap)
+        label.setScaledContents(True)  # Optional: scale image to fit label
         
-        layout_1.addWidget(image_label)
-        layout_1.addStretch()
-        _, layout_1_2 = self.create_widget(layout_1, QVBoxLayout)
-        print(time.ctime())
-        layout_1_2.addWidget(QLabel(f"Check-in time: {int(self.prefect.punctuality * 100)}%"))
-        layout_1_2.addWidget(QLabel(f"Popularity: {int(self.prefect.popularity * 100)}%"))
+        layout_1.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
+        # layout_1.addStretch()
+        
+        widget_1_2, layout_1_2 = self.create_widget(None, QHBoxLayout)
+        
+        layout_1.addWidget(widget_1_2)
+        
+        day, month, date, t, year = time.ctime().split()
+        hour, minute, sec = t.split(":")
+        
+        widget_1_2_1, layout_1_2_1 = self.create_widget(None, QHBoxLayout)
+        
+        layout_1_2_1.addWidget(LabeledField("Day", QLabel(day)))
+        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(date)} of {month}, {year}")))
+        
+        layout_1_2.addWidget(LabeledField("Day", widget_1_2_1))
+        
+        widget_1_2_2, layout_1_2_2 = self.create_widget(None, QHBoxLayout)
+        
+        layout_1_2_2.addWidget(LabeledField("Hr", QLabel(hour)))
+        layout_1_2_2.addWidget(LabeledField("Min", QLabel(minute)))
+        layout_1_2_2.addWidget(LabeledField("Sec", QLabel(sec)))
+        
+        layout_1_2.addWidget(LabeledField("Time", widget_1_2_2))
+        
         
         _, layout_2 = self.create_widget(self.main_layout, QVBoxLayout)
         
-        widget_2_1 = CharacterNameWidget(self.prefect.name)
-        layout_2.addWidget(widget_2_1)
+        name_widget = CharacterNameWidget(self.prefect.name)
+        layout_2.addWidget(name_widget)
         
-        _, layout_2_2 = self.create_widget(layout_2, QVBoxLayout)
+        widget_2_2, layout_2_2 = self.create_widget(None, QHBoxLayout)
         
-        layout_2_2.addWidget(QLabel("Information"))
+        layout_2_2.addWidget(LabeledField("Class", QLabel(self.prefect.cls.name)))
         
-        _, layout_2_3 = self.create_widget(layout_2, QVBoxLayout)
+        widget_1_3_1, layout_1_3_1 = self.create_scrollable_widget(None, QVBoxLayout)
         
-        layout_2_3.addWidget(QLabel(f"Post: {prefect.post_name}"))
-        layout_2_3.addWidget(QLabel(f"Class: {prefect.cls.name}"))
+        for index, duty in enumerate(self.prefect.duties):
+            layout_1_3_1.addWidget(QLabel(f"{index + 1}. {duty}"))
         
-
+        layout_2_2.addWidget(LabeledField("Duties", widget_1_3_1, False))
+        
+        layout_2.addWidget(widget_2_2)
+        

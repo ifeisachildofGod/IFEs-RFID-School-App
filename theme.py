@@ -323,6 +323,15 @@ stylesheet = '''
     QPushButton.HorizontalTab:checked:hover {{
         background-color: {hover3};
     }}
+    
+    QWidget.TeacherWidget *, QWidget.PrefectWidget * {{
+        background-color: {bg2};
+    }}
+    
+    QWidget.TeacherWidget, QWidget.PrefectWidget {{
+        border-radius: 20px;
+        padding: 50px;
+    }}
 '''
 
 
