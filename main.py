@@ -25,12 +25,16 @@ class TabViewWidget(QWidget):
         super().__init__()
         assert bar_orientation in ("vertical", "horizontal"), f"Invalid orientation: {bar_orientation}"
         
+        main_layout = QVBoxLayout()
+        self.setLayout(main_layout)
+        
         tab_layout_type = QHBoxLayout if bar_orientation == "horizontal" else QVBoxLayout
         main_layout_type = QHBoxLayout if bar_orientation == "vertical" else QVBoxLayout
         
+        container = QWidget()
         layout = main_layout_type()
-        self.setLayout(layout)
-        
+        container.setLayout(layout)
+        container.setStyleSheet("border: 2px solid red;")
         self.tab_buttons: list[QPushButton] = []
         
         tab_widget = QWidget()
@@ -67,6 +71,8 @@ class TabViewWidget(QWidget):
         layout.addWidget(self.stack)
         
         self.tab_buttons[0].click()
+        
+        main_layout.addWidget(container)
     
     def _make_tab_clicked_func(self, index: int):
         def func():
