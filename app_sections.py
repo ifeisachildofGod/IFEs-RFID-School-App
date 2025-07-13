@@ -10,8 +10,9 @@ from PyQt6.QtWidgets import (
     QRadioButton
 )
 from PyQt6.QtCore import Qt
-from models import CharacterName, Class, Prefect, PrefectDuty, Subject, Teacher
-from section_widgets import PrefectWidget, TeacherWidget
+from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
+from models import CharacterName, Class, Prefect, Subject, Teacher, Sensor
+from section_widgets import PrefectWidget, TeacherWidget, SensorMetaInfoWidget, LabeledField, BaseWidget
 
 
 class SchoolManager(QWidget):
@@ -99,6 +100,39 @@ class SchoolManager(QWidget):
         
         
         return super().keyPressEvent(a0)
+
+
+class GasManager(BaseWidget):
+    def __init__(self, sensor: Sensor):
+        super().__init__()
+        self.container.setProperty("class", "GasWidget")
+        
+        self.gas = sensor
+        
+        _, layout_1 = self.create_widget(self.main_layout, QVBoxLayout)
+        
+        label = QLabel(self.container)
+        pixmap = QPixmap(self.gas.img_path)
+        label.setPixmap(pixmap)
+        label.setScaledContents(True)  # Optional: scale image to fit label
+        
+        layout_1.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
+        # layout_1.addStretch()
+        
+        widget_1_2, layout_1_2 = self.create_widget(None, QHBoxLayout)
+        
+        self.reading_label = QLabel(self.gas.reading.data_func())
+        self.gas.reading.data_signal.connect(lambda data: self.reading_label.setText(str(data)))
+        
+        layout_1_2.addWidget(LabeledField("Reading", self.reading_label))
+        
+        layout_1.addWidget(widget_1_2)
+        
+        _, layout_2 = self.create_widget(self.main_layout, QVBoxLayout)
+        
+        meta_info_widget = SensorMetaInfoWidget(self.gas.name)
+        layout_2.addWidget(meta_info_widget)
         
         
+
         

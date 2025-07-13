@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
-from models import Prefect, Teacher, CharacterName
+from models import Prefect, Teacher, CharacterName, SensorMeta
 from theme import THEME_MANAGER
 
 
@@ -100,6 +100,43 @@ class CharacterNameWidget(QWidget):
         layout_2_1_2.addWidget(name_5, alignment=Qt.AlignmentFlag.AlignRight)
         
         self.main_layout.addWidget(LabeledField("Names", widget_2_1))
+
+class SensorMetaInfoWidget(QWidget):
+    def __init__(self, data: SensorMeta):
+        super().__init__()
+        self.data = data
+        
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        
+        widget_2_1 = QWidget()
+        layout_2_1 = QVBoxLayout()
+        widget_2_1.setLayout(layout_2_1)
+        
+        widget_2_1_1 = QWidget()
+        layout_2_1_1 = QHBoxLayout()
+        widget_2_1_1.setLayout(layout_2_1_1)
+        layout_2_1.addWidget(widget_2_1_1)
+        
+        name_1 = LabeledField("Sensor Name", QLabel(f"{self.data.sensor_type} sensor"))
+        name_2 = LabeledField("Model", QLabel(self.data.model))
+        name_3 = LabeledField("Version", QLabel(self.data.version))
+        
+        layout_2_1_1.addWidget(name_1)
+        layout_2_1_1.addWidget(name_2)
+        layout_2_1_1.addWidget(name_3)
+        
+        widget_2_1_2 = QWidget()
+        layout_2_1_2 = QHBoxLayout()
+        widget_2_1_2.setLayout(layout_2_1_2)
+        layout_2_1.addWidget(widget_2_1_2)
+        
+        name_4 = LabeledField("Other name", QLabel(self.data.developer))
+        # name_5 = LabeledField("Abbreviation", QLabel(self.data.abrev))
+        
+        layout_2_1_2.addWidget(name_4, alignment=Qt.AlignmentFlag.AlignRight)
+        
+        self.main_layout.addWidget(LabeledField("Meta Info", widget_2_1))
 
 class LabeledField(QWidget):
     def __init__(self, title: str, inner_widget: QWidget, min_size: bool = True, parent=None):
@@ -222,11 +259,6 @@ class TeacherWidget(BaseWidget):
                     layout_2_2_2_1_1.addWidget(QLabel(f"{self.positionify(str(period))} period"), alignment=Qt.AlignmentFlag.AlignTop)
                 layout_2_2_2_1.addWidget(LabeledField(cls_name, widget_2_2_2_1_1), int(index / 3), index % 3)
             layout_2_2_2.addWidget(LabeledField(subject_name, widget_2_2_2_1))
-    
-            
-            
-        
-
 
 class PrefectWidget(BaseWidget):
     def __init__(self, prefect: Prefect):
@@ -268,7 +300,6 @@ class PrefectWidget(BaseWidget):
         
         layout_1_2.addWidget(LabeledField("Time", widget_1_2_2))
         
-        
         _, layout_2 = self.create_widget(self.main_layout, QVBoxLayout)
         
         name_widget = CharacterNameWidget(self.prefect.name)
@@ -286,4 +317,5 @@ class PrefectWidget(BaseWidget):
         layout_2_2.addWidget(LabeledField("Duties", widget_1_3_1, False))
         
         layout_2.addWidget(widget_2_2)
+
         

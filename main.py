@@ -19,9 +19,12 @@ from theme import ThemeManager, THEME_MANAGER
 
 
 addr = "00:19:08:36:3F:5C"
+from PyQt6.QtWidgets import QWidget, QPushButton, QStackedLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QFrame
+from PyQt6.QtCore import Qt
+
 
 class TabViewWidget(QWidget):
-    def __init__(self, tab_widget_mapping: dict[str, QWidget], bar_orientation: Literal["vertical", "horizontal"]):
+    def __init__(self, tab_widget_mapping: dict[str, QWidget], bar_orientation: Literal["vertical", "horizontal"] = "horizontal"):
         super().__init__()
         assert bar_orientation in ("vertical", "horizontal"), f"Invalid orientation: {bar_orientation}"
         
@@ -108,7 +111,8 @@ class Window(QMainWindow):
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         
         # Create stacked widget for content
-        main_layout.addWidget(TabViewWidget({"Attendance": TabViewWidget({"Attendance": SchoolManager(), "Security": SchoolManager(), "Safety": SchoolManager()}, "vertical"), "Security": SchoolManager(), "Safety": SchoolManager()}, "horizontal"))
+        main_layout.addWidget(TabViewWidget({"Security": SchoolManager(), "Safety": SchoolManager()}))
+        # main_layout.addWidget(TabViewWidget({"Attendance": TabViewWidget({"Attendance": SchoolManager(), "Security": SchoolManager(), "Safety": SchoolManager()}), "Security": SchoolManager(), "Safety": SchoolManager()}))
         
         self.setCentralWidget(container)
     
