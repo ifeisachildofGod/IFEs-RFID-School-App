@@ -125,7 +125,7 @@ class Window(QMainWindow):
         main_layout.addWidget(TabViewWidget({
             "Staff": TabViewWidget(
                 {
-                    "Attendance": SchoolManager(),
+                    "Attendance": AttendanceWidget(),
                     "Attendance Graph": AttendanceBarWidget(),
                     "Punctuality Graph": PunctualityGraphWidget(),
                     "Prefect Editor": PrefectEditorWidget(),

@@ -1,4 +1,5 @@
 
+from copy import deepcopy
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QApplication,
@@ -19,6 +20,8 @@ from theme import THEME_MANAGER
 from matplotlib.colors import get_named_colors_mapping
 
 
+DAYS_OF_THE_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
 class BaseListWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
@@ -35,13 +38,17 @@ class BaseListWidget(QWidget):
         
         layout.addWidget(scroll_widget)
 
-class SchoolManager(BaseListWidget):
+class AttendanceWidget(BaseListWidget):
     def __init__(self, data: AppData):
         super().__init__()
         
-        self.main_layout.addWidget(LabeledField("Prefect Check-in Time", ))
+        _, cit_layout = create_widget(self.main_layout, QHBoxLayout)
+        
+        cit_layout.addWidget(LabeledField("Teacher Check-in Time", f"{data.teacher_cit.hour} : {data.teacher_cit.min} : {data.teacher_cit.sec}", QSizePolicy.Policy.Minimum))
+        cit_layout.addWidget(LabeledField("Prefect Check-in Time", f"{data.prefect_cit.hour} : {data.prefect_cit.min} : {data.prefect_cit.sec}", QSizePolicy.Policy.Minimum))
         
         _, attendance_layout = create_widget(self.main_layout, QVBoxLayout)
+        
         for staff in data.attendance_data:
             if isinstance(staff, Teacher):
                 widget = AttendanceTeacherWidget(staff)
@@ -144,8 +151,35 @@ class TeacherEditorWidget(BaseListWidget):
     #     return super().keyPressEvent(a0)
 
 class AttendanceBarWidget(BaseListWidget):
-    def __init__(self):
+    def __init__(self, data: AppData):
         super().__init__()
+        
+        prefects_data = []
+        
+        for staff_attendance_data in data.attendance_data:
+            if isinstance(staff_attendance_data.staff, Prefect):
+                weeks: list[list[Time]] = []
+                week = []
+                prev_day = "Monday"
+                prev_dt = 1
+                for index, (_, (day, _, dt, t, _)) in enumerate(staff_attendance_data.attendance.items()):
+                    week.append(t)
+                    
+                    if DAYS_OF_THE_WEEK.index(day) > DAYS_OF_THE_WEEK.index(prev_day) or (prev_dt != dt and DAYS_OF_THE_WEEK.index(day) == DAYS_OF_THE_WEEK.index(prev_day)) or index + 1 == len(staff_attendance_data.attendance):
+                        weeks.append(deepcopy(week))
+                        week = []
+                    
+                    prev_day = day
+                    prev_dt = dt
+                
+                yearly_punctuality = 0
+                
+                for week_time in weeks:
+                    weekly_punctuality = sum([(data.prefect_cit.hour - t.hour) * 60 + (data.prefect_cit.min - t.min) * 60 + (data.prefect_cit.sec - t.sec) / 60 for t in week_time])
+                    yearly_punctuality += weekly_punctuality
+                    
+                prefects_data.append(yearly_punctuality)
+        
         sub_data = ["Emma", "Bambi", "Mikalele", "Jesse", "Tumbum"], [80, 90, 98, 79, 86]
         
         prefect_info_widget = BarWidget("Cummulative Prefect Attendance", "Prefect Names", "Yearly Attendance (%)")
@@ -172,41 +206,75 @@ class AttendanceBarWidget(BaseListWidget):
         self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
 
 class PunctualityGraphWidget(BaseListWidget):
-    def __init__(self):
+    def __init__(self, data: AppData):
         super().__init__()
-        # print(THEME_MANAGER.get_current_theme())
-        sub_data = {
-            "prefect_id 1": ("Emma", [0, 0, 0, 1, 1, 2, 2, -1, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
-            "prefect_id 2": ("Bambi", [0, 0, 0, -2, 1, 2, 2, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
-            "prefect_id 3": ("Mikalele", [0, 0, -1, 0, 1, 1, 2, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
-            "prefect_id 4": ("Jesse", [0, 0, 0, 1, 1, 2, 3, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
-            "prefect_id 5": ("Tumbum", [0, 0, 0, 3, 1, 2, 0, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
-        }
+        
+        self.data = data
+        
+        teacher_data = {}
+        prefects_data = {}
+        
+        for staff_attendance_data in self.data.attendance_data:
+            if isinstance(staff_attendance_data.staff, Prefect):
+                prefects_data[staff_attendance_data.staff.id] = self.get_punctuality_data(staff_attendance_data)
+            elif isinstance(staff_attendance_data.staff, Teacher):
+                teacher_data[staff_attendance_data.staff.department.id][1][staff_attendance_data.staff.id] = self.get_punctuality_data(staff_attendance_data)
+        
+        # sub_data = {
+        #     "prefect_id 1": ("Emma", [0, 0, 0, 1, 1, 2, 2, -1, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+        #     "prefect_id 2": ("Bambi", [0, 0, 0, -2, 1, 2, 2, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+        #     "prefect_id 3": ("Mikalele", [0, 0, -1, 0, 1, 1, 2, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+        #     "prefect_id 4": ("Jesse", [0, 0, 0, 1, 1, 2, 3, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+        #     "prefect_id 5": ("Tumbum", [0, 0, 0, 3, 1, 2, 0, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+        # }
         prefect_info_widget = GraphWidget("Prefects Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
         
-        for index, (_, (name, data)) in enumerate(sub_data.items()):
+        for index, (_, (name, data)) in enumerate(prefects_data.items()):
             prefect_info_widget.plot([i + 1 for i in range(len(data))], data, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
         
-        teacher_data = {
-            "department_id 1": ("Humanities", sub_data),
-            "department_id 2": ("Technology", sub_data),
-            "department_id 3": ("Mathematics", sub_data),
-            "department_id 4": ("English", sub_data),
-            "department_id 5": ("Physics", sub_data),
-        }
+        # teacher_data = {
+        #     "department_id 1": ("Humanities", sub_data),
+        #     "department_id 2": ("Technology", sub_data),
+        #     "department_id 3": ("Mathematics", sub_data),
+        #     "department_id 4": ("English", sub_data),
+        #     "department_id 5": ("Physics", sub_data),
+        # }
         
         dtd_widget, dtd_layout = create_widget(None, QVBoxLayout)
         
         for _, (dep_name, dep_data) in teacher_data.items():
             dep_info_widget = GraphWidget(f"{dep_name} Department Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
             
-            for index, (_, (name, data)) in enumerate(dep_data.items()):
-                dep_info_widget.plot([i + 1 for i in range(len(data))], data, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
+            for index, (_, (name, info)) in enumerate(dep_data.items()):
+                dep_info_widget.plot([i + 1 for i in range(len(info))], info, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
             
             dtd_layout.addWidget(dep_info_widget)
         
         self.main_layout.addWidget(prefect_info_widget)
         self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+    
+    def get_punctuality_data(self, staff_attendance_data: AttendanceData):
+        prefects_plot_data: list[float] = []
+        
+        weeks: list[list[Time]] = []
+        week = []
+        prev_day = "Monday"
+        prev_dt = 1
+        for index, (_, (day, _, dt, t, _)) in enumerate(staff_attendance_data.attendance.items()):
+            week.append(t)
+            
+            if DAYS_OF_THE_WEEK.index(day) > DAYS_OF_THE_WEEK.index(prev_day) or (prev_dt != dt and DAYS_OF_THE_WEEK.index(day) == DAYS_OF_THE_WEEK.index(prev_day)) or index + 1 == len(staff_attendance_data.attendance):
+                weeks.append(deepcopy(week))
+                week = []
+            
+            prev_day = day
+            prev_dt = dt
+        
+        for week_time in weeks:
+            weekly_punctuality = sum([(self.data.prefect_cit.hour - t.hour) * 60 + (self.data.prefect_cit.min - t.min) * 60 + (self.data.prefect_cit.sec - t.sec) / 60 for t in week_time])
+            prefects_plot_data.append(weekly_punctuality)
+        
+        return staff_attendance_data.staff.name, prefects_plot_data
 
 
 class _SensorMetaInfoWidget(QWidget):

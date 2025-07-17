@@ -135,7 +135,7 @@ class AttendanceTeacherWidget(BaseAttendanceWidget):
         widget_1_2_1, layout_1_2_1 = create_widget(None, QHBoxLayout)
         
         layout_1_2_1.addWidget(LabeledField("Day", QLabel(day)))
-        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(dt)} of {month}, {year}")))
+        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(dt))} of {month}, {year}")))
         
         layout_1_2.addWidget(LabeledField("Day", widget_1_2_1))
         
@@ -206,7 +206,7 @@ class AttendancePrefectWidget(BaseAttendanceWidget):
         widget_1_2_1, layout_1_2_1 = create_widget(None, QHBoxLayout)
         
         layout_1_2_1.addWidget(LabeledField("Day", QLabel(day)))
-        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(dt)} of {month}, {year}")))
+        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(dt))} of {month}, {year}")))
         
         layout_1_2.addWidget(LabeledField("Day", widget_1_2_1))
         

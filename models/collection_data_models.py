@@ -12,7 +12,7 @@ class Time:
 
 @dataclass
 class AttendanceData:
-    attendance: dict[str, tuple[str, str, str, Time, str]]
+    attendance: dict[str, tuple[str, str, int, Time, str]]
     staff: Teacher | Prefect
 
 @dataclass
@@ -24,7 +24,4 @@ class AppData:
     prefects: list[Prefect]
     
     attendance_data: list[AttendanceData]
-    
-    mapping: dict[str, Teacher | Prefect]
-
 
