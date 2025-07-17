@@ -9,9 +9,10 @@ from PyQt6.QtWidgets import (
     QTableWidget, QLabel, QFrame,
     QAbstractItemView, QHeaderView, QMenu, QSizePolicy,
     QProgressBar, QCheckBox, QMainWindow,
-    QStackedWidget, QMessageBox, QFileDialog, QToolBar
+    QStackedWidget, QMessageBox, QFileDialog, QToolBar,
 )
-from app_sections import SchoolManager
+from app_sections import *
+from models import *
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage
 from PyQt6.QtCore import Qt, QMimeData, QThread, QTimer
 
@@ -110,8 +111,27 @@ class Window(QMainWindow):
         sidebar_layout.setSpacing(0)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         
+        gas_widget = SensorWidget(Sensor(SensorMeta("Gas", "Flying fish", "13.1.0.1", "Arduino inc"), "img.png"))
+        flame_widget = SensorWidget(Sensor(SensorMeta("Fire", "Fire free", "10.0.0.1", "Arduino inc"), "img.png"))
+        
+        safety_widget, safety_layout = create_scrollable_widget(None, QVBoxLayout)
+        
+        safety_layout.addWidget(gas_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+        safety_layout.addWidget(flame_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+        
         # Create stacked widget for content
-        main_layout.addWidget(TabViewWidget({"Security": SchoolManager(), "Safety": SchoolManager()}))
+        main_layout.addWidget(TabViewWidget({
+            "Staff": TabViewWidget(
+                {
+                    "Attendance": SchoolManager(),
+                    "Attendance graph": SchoolManager(),
+                    "Punctuality Graph": SchoolManager(),
+                    "Editor": EditorWidget(),
+                    },
+                "vertical"),
+            "Security": SchoolManager(),
+            "Safety": safety_widget
+            }))
         # main_layout.addWidget(TabViewWidget({"Attendance": TabViewWidget({"Attendance": SchoolManager(), "Security": SchoolManager(), "Safety": SchoolManager()}), "Security": SchoolManager(), "Safety": SchoolManager()}))
         
         self.setCentralWidget(container)

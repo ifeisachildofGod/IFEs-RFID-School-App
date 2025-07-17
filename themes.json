@@ -24,6 +24,8 @@
     "text": "#f0f0f0",
     "primary": "#0e639c",
     "primary_hover": "#1177bb",
+    "primary2": "#08004d",
+    "primary3": "#fffb00",
     "hover2": "#353536",
     "hover3": "#47474b",
     "primary_pressed": "#0b5081",

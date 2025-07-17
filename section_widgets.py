@@ -1,5 +1,6 @@
 
 import time
+import numpy as np
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QApplication, QGridLayout,
@@ -10,14 +11,39 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QMessageBox, QFileDialog, QToolBar,
     QRadioButton, QLayout
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QPoint
+from matplotlib.figure import Figure
+from models import *
+from base_widgets import *
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
-from models import Prefect, Teacher, CharacterName, SensorMeta
-from theme import THEME_MANAGER
+
+def create_widget(parent_layout: QLayout | None, layout_type: type[QHBoxLayout] | type[QVBoxLayout] | type[QGridLayout]):
+    widget = QWidget()
+    layout = layout_type()
+    widget.setLayout(layout)
+    
+    if parent_layout is not None:
+        parent_layout.addWidget(widget)
+    
+    return widget, layout
+
+def create_scrollable_widget(parent_layout: QLayout | None, layout_type: type[QHBoxLayout] | type[QVBoxLayout]):
+    scroll_widget = QScrollArea()
+    scroll_widget.setWidgetResizable(True)
+    
+    widget = QWidget()
+    scroll_widget.setWidget(widget)
+    layout = layout_type(widget)
+    
+    if parent_layout is not None:
+        parent_layout.addWidget(scroll_widget)
+    
+    return scroll_widget, layout
 
 
 class BaseWidget(QWidget):
-    def __init__(self, layout_type: type[QHBoxLayout] | type[QVBoxLayout] = QHBoxLayout):
+    def __init__(self, name: str, layout_type: type[QHBoxLayout] | type[QVBoxLayout] = QHBoxLayout):
         super().__init__()
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -27,7 +53,10 @@ class BaseWidget(QWidget):
         self.main_layout = layout_type()
         self.container.setLayout(self.main_layout)
         
-        layout.addWidget(self.container)
+        container = LabeledField(name, self.container)
+        container.setProperty("class", name)
+        
+        layout.addWidget(container)
     
     def positionify(self, number: str, default: str | None = ...):
         suffix = ("st" if number.endswith("1") and number != "11" else ("nd" if number.endswith("2") and number != "12" else "rd" if number.endswith("3") and number != "13" else "th"))
@@ -39,31 +68,9 @@ class BaseWidget(QWidget):
                 raise Exception(f"Text: ({number}) is not numeric")
             
         return number + suffix
-    
-    def create_widget(self, parent_layout: QLayout | None, layout_type: type[QHBoxLayout] | type[QVBoxLayout] | type[QGridLayout]):
-        widget = QWidget()
-        layout = layout_type()
-        widget.setLayout(layout)
-        
-        if parent_layout is not None:
-            parent_layout.addWidget(widget)
-        
-        return widget, layout
-    
-    def create_scrollable_widget(self, parent_layout: QLayout | None, layout_type: type[QHBoxLayout] | type[QVBoxLayout]):
-        scroll_widget = QScrollArea()
-        scroll_widget.setWidgetResizable(True)
-        
-        widget = QWidget()
-        scroll_widget.setWidget(widget)
-        layout = layout_type(widget)
-        
-        if parent_layout is not None:
-            parent_layout.addWidget(scroll_widget)
-        
-        return scroll_widget, layout
 
-class CharacterNameWidget(QWidget):
+
+class _CharacterNameWidget(QWidget):
     def __init__(self, name: CharacterName):
         super().__init__()
         self.name = name
@@ -101,99 +108,13 @@ class CharacterNameWidget(QWidget):
         
         self.main_layout.addWidget(LabeledField("Names", widget_2_1))
 
-class SensorMetaInfoWidget(QWidget):
-    def __init__(self, data: SensorMeta):
-        super().__init__()
-        self.data = data
-        
-        self.main_layout = QVBoxLayout()
-        self.setLayout(self.main_layout)
-        
-        widget_2_1 = QWidget()
-        layout_2_1 = QVBoxLayout()
-        widget_2_1.setLayout(layout_2_1)
-        
-        widget_2_1_1 = QWidget()
-        layout_2_1_1 = QHBoxLayout()
-        widget_2_1_1.setLayout(layout_2_1_1)
-        layout_2_1.addWidget(widget_2_1_1)
-        
-        name_1 = LabeledField("Sensor Name", QLabel(f"{self.data.sensor_type} sensor"))
-        name_2 = LabeledField("Model", QLabel(self.data.model))
-        name_3 = LabeledField("Version", QLabel(self.data.version))
-        
-        layout_2_1_1.addWidget(name_1)
-        layout_2_1_1.addWidget(name_2)
-        layout_2_1_1.addWidget(name_3)
-        
-        widget_2_1_2 = QWidget()
-        layout_2_1_2 = QHBoxLayout()
-        widget_2_1_2.setLayout(layout_2_1_2)
-        layout_2_1.addWidget(widget_2_1_2)
-        
-        name_4 = LabeledField("Other name", QLabel(self.data.developer))
-        # name_5 = LabeledField("Abbreviation", QLabel(self.data.abrev))
-        
-        layout_2_1_2.addWidget(name_4, alignment=Qt.AlignmentFlag.AlignRight)
-        
-        self.main_layout.addWidget(LabeledField("Meta Info", widget_2_1))
-
-class LabeledField(QWidget):
-    def __init__(self, title: str, inner_widget: QWidget, min_size: bool = True, parent=None):
-        super().__init__(parent)
-        
-        if min_size:
-            self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum)
-        
-        self.setStyleSheet("""
-            #TitleLabel {
-                color: gray;
-                font-size: 11px;
-                padding: 0 4px;
-                padding-bottom: 0px;
-            }
-            #WrapWidget {
-                border: 1px solid #aaa;
-                border-radius: 6px;
-            }
-        """)
-        
-        # Title Label (floating effect)
-        self.label = QLabel(title)
-        self.label.setObjectName("TitleLabel")
-        
-        self.label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        # Frame to wrap the actual widget with border
-        self.widget = QWidget()
-        self.widget.setObjectName("WrapWidget")
-        
-        widget_layout = QVBoxLayout(self.widget)
-        # widget_layout.setContentsMargins(5, 0, 5, 5)  # leave space for label
-        widget_layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignLeft)
-        widget_layout.addWidget(inner_widget)
-        
-        # Stack label over the widget
-        main_layout = QVBoxLayout(self)
-        # main_layout.setContentsMargins(4, 10, 4, 4)
-        main_layout.setSpacing(0)
-        # main_layout.addWidget(self.label)
-        main_layout.addWidget(self.widget)
-        
-        self.setLayout(main_layout)
-
-    def get_widget(self):
-        return self.widget.findChild(QWidget)
-
-class TeacherWidget(BaseWidget):
+class AttendanceTeacherWidget(BaseWidget):
     def __init__(self, teacher: Teacher):
-        super().__init__()
-        # self.theme = Theme()
-        self.container.setProperty("class", "TeacherWidget")
+        super().__init__("Teacher")
         
         self.teacher = teacher
         
-        _, layout_1 = self.create_widget(self.main_layout, QVBoxLayout)
+        _, layout_1 = create_widget(self.main_layout, QVBoxLayout)
         
         label = QLabel(self.container)
         pixmap = QPixmap(self.teacher.img_path)
@@ -203,21 +124,21 @@ class TeacherWidget(BaseWidget):
         layout_1.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
         # layout_1.addStretch()
         
-        widget_1_2, layout_1_2 = self.create_widget(None, QHBoxLayout)
+        widget_1_2, layout_1_2 = create_widget(None, QHBoxLayout)
         
         layout_1.addWidget(widget_1_2)
         
         day, month, date, t, year = time.ctime().split()
         hour, minute, sec = t.split(":")
         
-        widget_1_2_1, layout_1_2_1 = self.create_widget(None, QHBoxLayout)
+        widget_1_2_1, layout_1_2_1 = create_widget(None, QHBoxLayout)
         
         layout_1_2_1.addWidget(LabeledField("Day", QLabel(day)))
         layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(date)} of {month}, {year}")))
         
         layout_1_2.addWidget(LabeledField("Day", widget_1_2_1))
         
-        widget_1_2_2, layout_1_2_2 = self.create_widget(None, QHBoxLayout)
+        widget_1_2_2, layout_1_2_2 = create_widget(None, QHBoxLayout)
         
         layout_1_2_2.addWidget(LabeledField("Hr", QLabel(hour)))
         layout_1_2_2.addWidget(LabeledField("Min", QLabel(minute)))
@@ -225,14 +146,14 @@ class TeacherWidget(BaseWidget):
         
         layout_1_2.addWidget(LabeledField("Time", widget_1_2_2))
         
-        _, layout_2 = self.create_widget(self.main_layout, QVBoxLayout)
+        _, layout_2 = create_widget(self.main_layout, QVBoxLayout)
         
-        name_widget = CharacterNameWidget(self.teacher.name)
+        name_widget = _CharacterNameWidget(self.teacher.name)
         layout_2.addWidget(name_widget)
         
-        _, layout_2_2 = self.create_widget(layout_2, QVBoxLayout)
+        _, layout_2_2 = create_widget(layout_2, QVBoxLayout)
         
-        widget_2_2_2, layout_2_2_2 = self.create_scrollable_widget(None, QVBoxLayout)
+        widget_2_2_2, layout_2_2_2 = create_scrollable_widget(None, QVBoxLayout)
         
         layout_2_2.addWidget(LabeledField("Subjects", widget_2_2_2, False))
         
@@ -251,24 +172,23 @@ class TeacherWidget(BaseWidget):
                     periods_data[key][sub_key].append(period)
         
         for (_, subject_name), subject_data in periods_data.items():
-            widget_2_2_2_1, layout_2_2_2_1 = self.create_widget(None, QGridLayout)
+            widget_2_2_2_1, layout_2_2_2_1 = create_widget(None, QGridLayout)
             
             for index, ((_, cls_name), periods) in enumerate(subject_data.items()):
-                widget_2_2_2_1_1, layout_2_2_2_1_1 = self.create_widget(None, QVBoxLayout)
+                widget_2_2_2_1_1, layout_2_2_2_1_1 = create_widget(None, QVBoxLayout)
                 for period in periods:
                     layout_2_2_2_1_1.addWidget(QLabel(f"{self.positionify(str(period))} period"), alignment=Qt.AlignmentFlag.AlignTop)
                 layout_2_2_2_1.addWidget(LabeledField(cls_name, widget_2_2_2_1_1), int(index / 3), index % 3)
             layout_2_2_2.addWidget(LabeledField(subject_name, widget_2_2_2_1))
 
-class PrefectWidget(BaseWidget):
+class AttendancePrefectWidget(BaseWidget):
     def __init__(self, prefect: Prefect):
-        super().__init__()
-        # self.theme = Theme()
+        super().__init__("Prefect")
         self.container.setProperty("class", "PrefectWidget")
         
         self.prefect = prefect
         
-        _, layout_1 = self.create_widget(self.main_layout, QVBoxLayout)
+        _, layout_1 = create_widget(self.main_layout, QVBoxLayout)
         
         label = QLabel(self.container)
         pixmap = QPixmap(self.prefect.img_path)
@@ -278,21 +198,21 @@ class PrefectWidget(BaseWidget):
         layout_1.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
         # layout_1.addStretch()
         
-        widget_1_2, layout_1_2 = self.create_widget(None, QHBoxLayout)
+        widget_1_2, layout_1_2 = create_widget(None, QHBoxLayout)
         
         layout_1.addWidget(widget_1_2)
         
         day, month, date, t, year = time.ctime().split()
         hour, minute, sec = t.split(":")
         
-        widget_1_2_1, layout_1_2_1 = self.create_widget(None, QHBoxLayout)
+        widget_1_2_1, layout_1_2_1 = create_widget(None, QHBoxLayout)
         
         layout_1_2_1.addWidget(LabeledField("Day", QLabel(day)))
         layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(date)} of {month}, {year}")))
         
         layout_1_2.addWidget(LabeledField("Day", widget_1_2_1))
         
-        widget_1_2_2, layout_1_2_2 = self.create_widget(None, QHBoxLayout)
+        widget_1_2_2, layout_1_2_2 = create_widget(None, QHBoxLayout)
         
         layout_1_2_2.addWidget(LabeledField("Hr", QLabel(hour)))
         layout_1_2_2.addWidget(LabeledField("Min", QLabel(minute)))
@@ -300,16 +220,16 @@ class PrefectWidget(BaseWidget):
         
         layout_1_2.addWidget(LabeledField("Time", widget_1_2_2))
         
-        _, layout_2 = self.create_widget(self.main_layout, QVBoxLayout)
+        _, layout_2 = create_widget(self.main_layout, QVBoxLayout)
         
-        name_widget = CharacterNameWidget(self.prefect.name)
+        name_widget = _CharacterNameWidget(self.prefect.name)
         layout_2.addWidget(name_widget)
         
-        widget_2_2, layout_2_2 = self.create_widget(None, QHBoxLayout)
+        widget_2_2, layout_2_2 = create_widget(None, QHBoxLayout)
         
         layout_2_2.addWidget(LabeledField("Class", QLabel(self.prefect.cls.name)))
         
-        widget_1_3_1, layout_1_3_1 = self.create_scrollable_widget(None, QVBoxLayout)
+        widget_1_3_1, layout_1_3_1 = create_scrollable_widget(None, QVBoxLayout)
         
         for index, duty in enumerate(self.prefect.duties):
             layout_1_3_1.addWidget(QLabel(f"{index + 1}. {duty}"))
@@ -318,4 +238,80 @@ class PrefectWidget(BaseWidget):
         
         layout_2.addWidget(widget_2_2)
 
+class PrefectWidget(QWidget):
+    def __init__(self, prefect: Prefect):
+        super().__init__()
         
+        self.prefect = prefect
+        
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        self.container = QWidget()
+        self.main_layout = QVBoxLayout()
+        self.container.setLayout(self.main_layout)
+        
+        layout.addWidget(self.container)
+        
+        _, main_info_layout = create_widget(self.main_layout, QHBoxLayout)
+        
+        image_height = 200
+        
+        label = QLabel(self.container)
+        pixmap = QPixmap(self.prefect.img_path)
+        label.setFixedHeight(image_height)
+        label.setFixedWidth(int(image_height * pixmap.size().width() / pixmap.size().height()))
+        label.setScaledContents(True)  # Optional: scale image to fit label
+        scaled_pixmap = pixmap.scaled(
+            label.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        label.setPixmap(scaled_pixmap)
+        main_info_layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignLeft)
+        main_info_layout.addStretch()
+        
+        name_label = QLabel(f"{self.prefect.name.sur} {self.prefect.name.first}, {self.prefect.name.middle}")
+        name_label.setStyleSheet("font-size: 50px")
+        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_info_layout.addWidget(name_label, Qt.AlignmentFlag.AlignRight)
+        
+        self.option_button_size = 30
+        
+        self.option_button = QPushButton("")
+        self.option_button.setStyleSheet(f"""
+            font-size: {self.option_button_size}px;
+            border-radius: {self.option_button_size / 2}px;
+        """)
+        self.option_button.setFixedSize(self.option_button_size, self.option_button_size)
+        # self.option_button.clicked.connect(self.show_context_menu)
+        self.option_button.mousePressEvent = self.show_context_menu
+        
+        main_info_layout.addWidget(self.option_button, alignment=Qt.AlignmentFlag.AlignTop)
+        
+        _, sub_info_layout = create_widget(self.main_layout, QHBoxLayout)
+        
+        id_label = QLabel(self.prefect.id)
+        id_label.setStyleSheet("font-weight: bold;")
+        
+        sub_info_layout.addWidget(LabeledField("IUD", id_label), alignment=Qt.AlignmentFlag.AlignLeft)
+        sub_info_layout.addWidget(LabeledField("Post", QLabel(self.prefect.post_name)), alignment=Qt.AlignmentFlag.AlignCenter)
+        sub_info_layout.addWidget(LabeledField("Class", QLabel(self.prefect.cls.name)), alignment=Qt.AlignmentFlag.AlignRight)
+    
+    def mousePressEvent(self, a0):
+        print("a", self.mapToGlobal(a0.pos()))
+        return super().mousePressEvent(a0)
+    
+    def show_context_menu(self, a0):
+        menu = QMenu(self)
+        
+        IUD_action = menu.addAction("Set IUD")
+        puncuality_graph = menu.addAction("View punctuality graph")
+        
+        pos = self.mapToGlobal(self.mapTo(self.parent(), self.pos()))
+        
+        action = menu.exec(pos)
+        
+        if action == IUD_action:
+            pass
+

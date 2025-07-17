@@ -74,5 +74,5 @@ class Prefect:
 class Sensor:
     meta_data: SensorMeta
     img_path: str
-    reading: LiveData = LiveData(lambda: "")
+    reading: LiveData | None = None
 

@@ -172,168 +172,203 @@ from PyQt5.QtWidgets import QApplication
 #     json.dump(light_theme, f2, indent=2)
 
 stylesheet = '''
-    QWidget {{
-      background-color: {bg};
-      color: {text};
-      font-family: 'Segoe UI', sans-serif;
-      font-size: 13px;
-      margin: 0px
-    }}
+  QWidget {{
+    background-color: {bg};
+    color: {text};
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    margin: 0px
+  }}
 
-    QLineEdit, QTextEdit, QPlainTextEdit {{
-      background-color: {input_bg};
-      color: {text};
-      border: 1px solid {input_border};
-      border-radius: 5px;
-      padding: 5px;
-    }}
+  QLineEdit, QTextEdit, QPlainTextEdit {{
+    background-color: {input_bg};
+    color: {text};
+    border: 1px solid {input_border};
+    border-radius: 5px;
+    padding: 5px;
+  }}
 
-    QPushButton {{
-      background-color: {primary};
-      color: {text};
-      border: none;
-      border-radius: 4px;
-      padding: 6px 12px;
-    }}
+  QPushButton {{
+    background-color: {primary};
+    color: {text};
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+  }}
 
-    QPushButton:hover {{
-      background-color: {primary_hover};
-    }}
+  QPushButton:hover {{
+    background-color: {primary_hover};
+  }}
 
-    QPushButton:pressed {{
-      background-color: {primary_pressed};
-    }}
+  QPushButton:pressed {{
+    background-color: {primary_pressed};
+  }}
 
-    QComboBox {{
-      background-color: {input_bg};
-      color: {text};
-      border: 1px solid {input_border};
-      border-radius: 4px;
-      padding: 4px;
-    }}
+  QComboBox {{
+    background-color: {input_bg};
+    color: {text};
+    border: 1px solid {input_border};
+    border-radius: 4px;
+    padding: 4px;
+  }}
 
-    QComboBox QAbstractItemView {{
-      background-color: {input_bg};
-      selection-background-color: {highlight};
-    }}
+  QComboBox QAbstractItemView {{
+    background-color: {input_bg};
+    selection-background-color: {highlight};
+  }}
 
-    QCheckBox, QRadioButton {{
-      spacing: 6px;
-    }}
+  QCheckBox, QRadioButton {{
+    spacing: 6px;
+  }}
 
-    QCheckBox::indicator, QRadioButton::indicator {{
-      width: 14px;
-      height: 14px;
-    }}
+  QCheckBox::indicator, QRadioButton::indicator {{
+    width: 14px;
+    height: 14px;
+  }}
 
-    QScrollBar {{
-      background: {bg};
-      border: none;
-    }}
+  QScrollBar {{
+    background: {bg};
+    border: none;
+  }}
 
-    QScrollBar:vertical, QScrollBar:horizontal {{
-      background: {bg};
-      border: none;
-      width: 10px;
-    }}
+  QScrollBar:vertical, QScrollBar:horizontal {{
+    background: {bg};
+    border: none;
+    width: 10px;
+  }}
 
-    QScrollBar::handle {{
-      background: {scrollbar};
-      border-radius: 4px;
-      min-height: 20px;
-    }}
+  QScrollBar::handle {{
+    background: {scrollbar};
+    border-radius: 4px;
+    min-height: 20px;
+  }}
 
-    QToolTip {{
-      background-color: {tooltip_bg};
-      color: {tooltip_text};
-      border: 1px solid {border};
-      padding: 5px;
-      border-radius: 3px;
-    }}
+  QToolTip {{
+    background-color: {tooltip_bg};
+    color: {tooltip_text};
+    border: 1px solid {border};
+    padding: 5px;
+    border-radius: 3px;
+  }}
 
-    QTabWidget::pane {{
-      border: 1px solid {border};
-    }}
+  QTabWidget::pane {{
+    border: 1px solid {border};
+  }}
 
-    QTabBar::tab {{
-      background: {secondary};
-      color: {text};
-      padding: 6px;
-      border-top-left-radius: 4px;
-      border-top-right-radius: 4px;
-    }}
+  QTabBar::tab {{
+    background: {secondary};
+    color: {text};
+    padding: 6px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }}
 
-    QTabBar::tab:selected {{
-      background: {input_bg};
-      font-weight: bold;
-    }}
+  QTabBar::tab:selected {{
+    background: {input_bg};
+    font-weight: bold;
+  }}
 
-    QMenu {{
-      background-color: {input_bg};
-      color: {text};
-      border: 1px solid {border};
-    }}
+  QMenu {{
+    background-color: {input_bg};
+    color: {text};
+    border: 1px solid {border};
+  }}
 
-    QMenu::item:selected {{
-      background-color: {highlight};
-    }}
+  QMenu::item:selected {{
+    background-color: {highlight};
+  }}
 
-    QTableView {{
-      background-color: {bg};
-      color: {text};
-      gridline-color: {border};
-      selection-background-color: {highlight};
-    }}
-    
-    QPushButton.VerticalTab {{
-        width: 100%;
-        height: 50px;
-        border-radius: 0px;
-        border-left: 3px solid {bg2};
-        background-color: {bg2};
-    }}
-    
-    QPushButton.VerticalTab:checked {{
-        border-left-color: {primary};
-        background-color: {secondary};
-    }}
-    
-    QPushButton.VerticalTab:checked:hover {{
-        background-color: {hover3};
-    }}
-    
-    QPushButton.HorizontalTab {{
-        width: 100%;
-        height: 30px;
-        border-top: 3px solid {bg2};
-        background-color: {bg2};
-        border-radius: 0px;
-    }}
-    
-    QPushButton.HorizontalTab:hover {{
-      border-top-color: {hover2};
-      background-color: {hover2};
-    }}
-    
-    QPushButton.HorizontalTab:checked {{
-        border-top-color: {primary};
-        background-color: {secondary};
-    }}
-    
-    QPushButton.HorizontalTab:checked:hover {{
-        background-color: {hover3};
-    }}
-    
-    QWidget.TeacherWidget *, QWidget.PrefectWidget * {{
-        background-color: {bg2};
-    }}
-    
-    QWidget.TeacherWidget, QWidget.PrefectWidget {{
-        border-radius: 20px;
-        padding: 50px;
-    }}
+  QTableView {{
+    background-color: {bg};
+    color: {text};
+    gridline-color: {border};
+    selection-background-color: {highlight};
+  }}
+  
+  QPushButton.VerticalTab {{
+      width: 100%;
+      height: 50px;
+      border-radius: 0px;
+      border-left: 3px solid {bg2};
+      background-color: {bg2};
+  }}
+  
+  QPushButton.VerticalTab:checked {{
+      border-left-color: {primary};
+      background-color: {secondary};
+  }}
+  
+  QPushButton.VerticalTab:checked:hover {{
+      background-color: {hover3};
+  }}
+  
+  QPushButton.HorizontalTab {{
+      width: 100%;
+      height: 30px;
+      border-top: 3px solid {bg2};
+      background-color: {bg2};
+      border-radius: 0px;
+  }}
+  
+  QPushButton.HorizontalTab:hover {{
+    border-top-color: {hover2};
+    background-color: {hover2};
+  }}
+  
+  QPushButton.HorizontalTab:checked {{
+      border-top-color: {primary};
+      background-color: {secondary};
+  }}
+  
+  QPushButton.HorizontalTab:checked:hover {{
+      background-color: {hover3};
+  }}
+  
+  QWidget.Teacher * {{
+      background-color: {primary2};
+  }}
+  
+  QWidget.Prefect * {{
+    background-color: {primary3};
+  }}
+  
+  QWidget.Teacher, QWidget.Prefect {{
+    border-radius: 25px;
+    padding: 50px;
+    border: 2px solid grey;
+  }}
+
+	QWidget.LabeledField QLabel {{
+    font-weight: 500;
+	}}
+  
+	QWidget.Teacher * QWidget.LabeledField {{
+		border: 1px solid black;
+	}}
+ 
+	QWidget.Prefect * QWidget.LabeledField {{
+		border-color: black;
+	}}
+ 
+	QWidget.Teacher * QWidget.labeled-widget * QLabel {{
+		color: white;
+	}}
+ 
+	QWidget.Prefect * QWidget.labeled-widget * QLabel {{
+		color: #555555;
+	}}
+ 
+  QWidget.Teacher * QLabel.labeled-title {{
+		color: gray;
+	}}
+ 
+	QWidget.Prefect * QLabel.labeled-title {{
+		color: black;
+	}}
+
 '''
 
+"#555555"
 
 class ThemeManager:
     def __init__(self):
