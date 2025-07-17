@@ -2,34 +2,7 @@ from PyQt6.QtCore import pyqtSignal, pyqtBoundSignal
 from dataclasses import dataclass
 from os import PathLike
 from typing import Callable
-
-
-@dataclass
-class BT_Device:
-    name: str
-    addr: str
-    port: int = 1234
-
-
-@dataclass
-class LiveData:
-    data_signal: pyqtBoundSignal
-    data_func: Callable
-
-@dataclass
-class CharacterName:
-    sur: str
-    first: str
-    middle: str
-    abrev: str
-    other: str | None = None
-
-@dataclass
-class SensorMeta:
-    sensor_type: str
-    model: str
-    version: str
-    developer: str
+from models.data_models import *
 
 @dataclass
 class Class:
@@ -52,6 +25,7 @@ class Teacher:
     id: str
     
     name: CharacterName
+    department: Department
     subjects: list[Subject]
     img_path: str | PathLike
     punctuality: float = 1.0
@@ -65,7 +39,7 @@ class Prefect:
     post_name: str
     cls: Class
     img_path: str | PathLike
-    duties: list[str]
+    duties: dict[str, list[str]]
     punctuality: float = 1.0
     popularity: float = 1.0
 

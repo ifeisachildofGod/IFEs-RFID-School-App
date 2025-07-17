@@ -324,51 +324,79 @@ stylesheet = '''
       background-color: {hover3};
   }}
   
-  QWidget.Teacher * {{
-      background-color: {primary2};
+  .options-button {{
+    font-size: 25px;
   }}
   
-  QWidget.Prefect * {{
-    background-color: {primary3};
+  QWidget.AttendanceTeacherWidget *, QWidget.EditorTeacherWidget * {{
+      background-color: {teacher};
   }}
   
-  QWidget.Teacher, QWidget.Prefect {{
+  QWidget.AttendancePrefectWidget *, QWidget.EditorPrefectWidget * {{
+    background-color: {prefect};
+  }}
+  
+  QWidget.EditorTeacherWidget,
+  QWidget.EditorPrefectWidget,
+  QWidget.AttendanceTeacherWidget,
+  QWidget.AttendancePrefectWidget
+  {{
     border-radius: 25px;
     padding: 50px;
     border: 2px solid grey;
   }}
-
-	QWidget.LabeledField QLabel {{
-    font-weight: 500;
-	}}
   
-	QWidget.Teacher * QWidget.LabeledField {{
-		border: 1px solid black;
-	}}
- 
-	QWidget.Prefect * QWidget.LabeledField {{
-		border-color: black;
-	}}
- 
-	QWidget.Teacher * QWidget.labeled-widget * QLabel {{
+  QWidget.EditorTeacherWidget * QLabel,
+	QWidget.AttendanceTeacherWidget * QLabel
+  {{
 		color: white;
 	}}
- 
-	QWidget.Prefect * QWidget.labeled-widget * QLabel {{
-		color: #555555;
-	}}
- 
-  QWidget.Teacher * QLabel.labeled-title {{
-		color: gray;
-	}}
- 
-	QWidget.Prefect * QLabel.labeled-title {{
+  
+  QWidget.EditorPrefectWidget * QLabel,
+  QWidget.AttendancePrefectWidget * QLabel
+  {{
 		color: black;
 	}}
+ 
+  QWidget.EditorTeacherWidget * .labeled-title,
+  QWidget.EditorTeacherWidget * .options-button,
+  QWidget.AttendanceTeacherWidget * .labeled-title,
+  QWidget.AttendanceTeacherWidget * .options-button
+  {{
+		color: {title_text_teacher};
+	}}
+ 
+  QWidget.EditorPrefectWidget * .labeled-title,
+  QWidget.EditorPrefectWidget * .options-button,
+  QWidget.AttendancePrefectWidget * .labeled-title,
+  QWidget.AttendancePrefectWidget * .options-button
+  {{
+		color: {title_text_prefect};
+	}}
+  
+  QWidget.AttendanceTeacherWidget * .labeled-widget,
+  QWidget.EditorTeacherWidget * .labeled-widget
+  {{
+    border: 1px solid {title_text_teacher};
+  }}
+  
+  QWidget.AttendancePrefectWidget * .labeled-widget,
+  QWidget.EditorPrefectWidget * .labeled-widget
+  {{
+    border: 1px solid {title_text_prefect};
+  }}
+  
+  .labeled-title {{
+    font-size: 11px;
+    padding: 0 4px;
+    padding-bottom: 0px;
+  }}
+  
+  .labeled-widget {{
+    border-radius: 6px;
+  }}
 
 '''
-
-"#555555"
 
 class ThemeManager:
     def __init__(self):
@@ -412,6 +440,12 @@ class ThemeManager:
         theme: dict[str, dict[str, str] | str] = self.themes.get(self.current_theme, None)
         
         return theme
+    
+    def get_current_palette(self):
+      theme = self.get_current_theme()
+      
+      if theme is not None:
+        return theme["palette"]
 
     def get_theme_names(self):
         return list(self.themes.keys())

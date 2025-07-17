@@ -12,7 +12,8 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QMessageBox, QFileDialog, QToolBar,
 )
 from app_sections import *
-from models import *
+from models.data_models import *
+from models.object_models import *
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage
 from PyQt6.QtCore import Qt, QMimeData, QThread, QTimer
 
@@ -119,20 +120,21 @@ class Window(QMainWindow):
         safety_layout.addWidget(gas_widget, alignment=Qt.AlignmentFlag.AlignCenter)
         safety_layout.addWidget(flame_widget, alignment=Qt.AlignmentFlag.AlignCenter)
         
+        
         # Create stacked widget for content
         main_layout.addWidget(TabViewWidget({
             "Staff": TabViewWidget(
                 {
                     "Attendance": SchoolManager(),
-                    "Attendance graph": SchoolManager(),
-                    "Punctuality Graph": SchoolManager(),
-                    "Editor": EditorWidget(),
+                    "Attendance Graph": AttendanceBarWidget(),
+                    "Punctuality Graph": PunctualityGraphWidget(),
+                    "Prefect Editor": PrefectEditorWidget(),
+                    "Teacher Editor": TeacherEditorWidget(),
                     },
                 "vertical"),
-            "Security": SchoolManager(),
+            "Security": UltrasonicSonarWidget(),
             "Safety": safety_widget
             }))
-        # main_layout.addWidget(TabViewWidget({"Attendance": TabViewWidget({"Attendance": SchoolManager(), "Security": SchoolManager(), "Safety": SchoolManager()}), "Security": SchoolManager(), "Safety": SchoolManager()}))
         
         self.setCentralWidget(container)
     

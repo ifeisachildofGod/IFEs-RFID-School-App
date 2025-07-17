@@ -11,8 +11,12 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
-from models import *
+from models.data_models import *
+from models.collection_data_models import *
 from section_widgets import *
+from base_widgets import *
+from theme import THEME_MANAGER
+from matplotlib.colors import get_named_colors_mapping
 
 
 class BaseListWidget(QWidget):
@@ -29,97 +33,180 @@ class BaseListWidget(QWidget):
         layout = QVBoxLayout(self)
         self.setLayout(layout)
         
-        # b = QRadioButton("Hello")
-        # p = PrefectWidget(
-        #     Prefect(
-        #         "12010232012",
-        #         CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma E.U"),
-        #         "Parade Commander",
-        #         Class("212123321231212123113", "SS2", "D", "SS2 D"),
-        #         "img.png",
-        #         ["Morning", "Labour", "Cadet training"]
-        #         )
-        #     )
-        
-        # t = TeacherWidget(
-        #     Teacher(
-        #         "13123231323",
-        #         CharacterName("Hamza", "Yunusa", "George", "Sambisa"),
-        #         [
-        #             Subject("23123121231212132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Monday", 8), ("Monday", 9)]),
-        #             Subject("23123121231252132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 1), ("Tuesday", 2)]),
-        #             Subject("23123121221212132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Friday", 4), ("Friday", 5)]),
-        #             Subject("23123121231212132103", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Saturday", 8), ("Saturday", 9)]),
-        #             Subject("23123121231612132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Wednesday", 8), ("Wednesday", 9)]),
-        #             Subject("23123121231292132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Thursday", 8), ("Thursday", 9)]),
-        #             ],
-        #         "img.png"
-        #         )
-        #     )
-        
-        # self.main_layout.addWidget(b)
-        # self.main_layout.addWidget(p)
-        # self.main_layout.addWidget(t, alignment=Qt.AlignmentFlag.AlignTop)
-        
-        self.main_layout.addStretch()
-        
         layout.addWidget(scroll_widget)
 
 class SchoolManager(BaseListWidget):
-    def __init__(self):
+    def __init__(self, data: AppData):
         super().__init__()
+        
+        self.main_layout.addWidget(LabeledField("Prefect Check-in Time", ))
+        
+        _, attendance_layout = create_widget(self.main_layout, QVBoxLayout)
+        for staff in data.attendance_data:
+            if isinstance(staff, Teacher):
+                widget = AttendanceTeacherWidget(staff)
+            elif isinstance(staff, Prefect):
+                widget = AttendancePrefectWidget(staff)
+            else:
+                raise TypeError(f"Type: {type(staff)} is not appropriate in AppData.attendance_data")
+            
+            attendance_layout.addWidget(widget)
+        
+        self.main_layout.addStretch()
     
-    def keyPressEvent(self, a0):
-        widget = None
+    # def keyPressEvent(self, a0):
+    #     widget = None
         
-        p = Prefect(
-                    "12010232012",
-                    CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma E.U"),
-                    "Parade Commander",
-                    Class("212123321231212123113", "SS2", "D", "SS2 D"),
-                    "img.png",
-                    ["Morning", "Labour", "Cadet training"]
-                )
-        if a0.key() == 16777220:
-            widget = AttendanceTeacherWidget(
-                    Teacher(
-                        "13123231323",
-                        CharacterName("Hamza", "Yunusa", "George", "Sambisa"),
-                        [
-                            Subject("23123121221212132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Monday", 9)]),
-                            Subject("23123121221212132123", "Maths", Class("212123321231242123113", "SS2", "F", "SS2 F"), [("Tuesday", 1), ("Tuesday", 2)]),
-                            Subject("23123121231212132103", "English", Class("2121233212312152123113", "SS3", "E", "SS3 E"), [("Tuesday", 4), ("Tuesday", 5)]),
-                            Subject("23123121231212132103", "English", Class("212123323231212123113", "SS1", "B", "SS1 B"), [("Tuesday", 8), ("Tuesday", 9)]),
-                            Subject("23123121231212132103", "English", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Wednesday", 9)]),
-                            Subject("23123121231212132103", "English", Class("212123321231217123113", "SS2", "E", "SS2 E"), [("Tuesday", 8), ("Tuesday", 9)]),
-                            ],
-                        "img.png"
-                )
-            )
-        elif a0.text() == "p":
-            widget = AttendancePrefectWidget(p)
+    #     if a0.key() == 16777220:
+    #         widget = AttendanceTeacherWidget(
+    #             Teacher(
+    #                 "13123231323",
+    #                 CharacterName("Hamza", "Yunusa", "George", "Sambisa"),
+    #                 Department("department_id 1", "Humanities"),
+    #                 [
+    #                     Subject("23123121221212132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Monday", 9)]),
+    #                     Subject("23123121221212132123", "Maths", Class("212123321231242123113", "SS2", "F", "SS2 F"), [("Tuesday", 1), ("Tuesday", 2)]),
+    #                     Subject("23123121231212132103", "English", Class("2121233212312152123113", "SS3", "E", "SS3 E"), [("Tuesday", 4), ("Tuesday", 5)]),
+    #                     Subject("23123121231212132103", "English", Class("212123323231212123113", "SS1", "B", "SS1 B"), [("Tuesday", 8), ("Tuesday", 9)]),
+    #                     Subject("23123121231212132103", "English", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Wednesday", 9)]),
+    #                     Subject("23123121231212132103", "English", Class("212123321231217123113", "SS2", "E", "SS2 E"), [("Tuesday", 8), ("Tuesday", 9)]),
+    #                     ],
+    #                 "img.png"
+    #             )
+    #         )
+    #     elif a0.text() == "p":
+    #         widget = AttendancePrefectWidget(
+    #             Prefect(
+    #                 "12010232012",
+    #                 CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma E.U"),
+    #                 "Parade Commander",
+    #                 Class("212123321231212123113", "SS2", "D", "SS2 D"),
+    #                 "img.png",
+    #                 ["Morning", "Labour", "Cadet training"]
+    #             )
+    #         )
         
-        self.main_layout.insertWidget(len(self.main_layout.children()), widget, alignment=Qt.AlignmentFlag.AlignTop)
-        return super().keyPressEvent(a0)
+    #     self.main_layout.insertWidget(len(self.main_layout.children()), widget, alignment=Qt.AlignmentFlag.AlignTop)
+    #     return super().keyPressEvent(a0)
 
-class EditorWidget(BaseListWidget):
+class PrefectEditorWidget(BaseListWidget):
+    def __init__(self, data: AppData):
+        super().__init__()
+        
+        for prefect in data.prefects:
+            self.main_layout.addWidget(AttendancePrefectWidget(prefect))
+        
+        self.main_layout.addStretch()
+    
+    # def keyPressEvent(self, a0):
+    #     p = Prefect(
+    #                 "12010232012",
+    #                 CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma E.U"),
+    #                 "Parade Commander",
+    #                 Class("212123321231212123113", "SS2", "D", "SS2 D"),
+    #                 "img.png",
+    #                 ["Morning", "Labour", "Cadet training"]
+    #             )
+        
+    #     if a0.key() == 16777220:
+    #         self.main_layout.insertWidget(len(self.main_layout.children()), EditorPrefectWidget(p), alignment=Qt.AlignmentFlag.AlignTop)
+        
+    #     return super().keyPressEvent(a0)
+
+class TeacherEditorWidget(BaseListWidget):
+    def __init__(self, data: AppData):
+        super().__init__()
+        
+        for teacher in data.teachers:
+            self.main_layout.addWidget(AttendancePrefectWidget(teacher))
+        
+        self.main_layout.addStretch()
+    
+    # def keyPressEvent(self, a0):
+    #     t = Teacher(
+    #             "13123231323",
+    #             CharacterName("Hamza", "Yunusa", "George", "Sambisa"),
+    #             Department("department_id 1", "Humanities"),
+    #             [
+    #                 Subject("23123121221212132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Monday", 9)]),
+    #                 Subject("23123121221212132123", "Maths", Class("212123321231242123113", "SS2", "F", "SS2 F"), [("Tuesday", 1), ("Tuesday", 2)]),
+    #                 Subject("23123121231212132103", "English", Class("2121233212312152123113", "SS3", "E", "SS3 E"), [("Tuesday", 4), ("Tuesday", 5)]),
+    #                 Subject("23123121231212132103", "English", Class("212123323231212123113", "SS1", "B", "SS1 B"), [("Tuesday", 8), ("Tuesday", 9)]),
+    #                 Subject("23123121231212132103", "English", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Wednesday", 9)]),
+    #                 Subject("23123121231212132103", "English", Class("212123321231217123113", "SS2", "E", "SS2 E"), [("Tuesday", 8), ("Tuesday", 9)]),
+    #                 ],
+    #             "img.png"
+    #         )
+        
+    #     if a0.key() == 16777220:
+    #         self.main_layout.insertWidget(len(self.main_layout.children()), EditorTeacherWidget(t), alignment=Qt.AlignmentFlag.AlignTop)
+        
+    #     return super().keyPressEvent(a0)
+
+class AttendanceBarWidget(BaseListWidget):
     def __init__(self):
         super().__init__()
-    
-    def keyPressEvent(self, a0):
-        p = Prefect(
-                    "12010232012",
-                    CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma E.U"),
-                    "Parade Commander",
-                    Class("212123321231212123113", "SS2", "D", "SS2 D"),
-                    "img.png",
-                    ["Morning", "Labour", "Cadet training"]
-                )
+        sub_data = ["Emma", "Bambi", "Mikalele", "Jesse", "Tumbum"], [80, 90, 98, 79, 86]
         
-        if a0.key() == 16777220:
-            self.main_layout.insertWidget(len(self.main_layout.children()), PrefectWidget(p), alignment=Qt.AlignmentFlag.AlignTop)
+        prefect_info_widget = BarWidget("Cummulative Prefect Attendance", "Prefect Names", "Yearly Attendance (%)")
+        prefect_info_widget.add_data("Prefects", THEME_MANAGER.get_current_palette()["prefect"], sub_data)
         
-        return super().keyPressEvent(a0)
+        teacher_data = {
+            "department_id 1": ("Humanities", sub_data),
+            "department_id 2": ("Technology", sub_data),
+            "department_id 3": ("Mathematics", sub_data),
+            "department_id 4": ("English", sub_data),
+            "department_id 5": ("Physics", sub_data),
+        }
+        
+        dtd_widget, dtd_layout = create_widget(None, QVBoxLayout)
+        # dtd_widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        
+        for index, (_, (name, data)) in enumerate(teacher_data.items()):
+            widget = BarWidget(f"Cummulative {name} Attendance", f"{name} Department Teachers", "Yearly Attendance (%)")
+            widget.add_data(name, list(get_named_colors_mapping().values())[index], data)
+            
+            dtd_layout.addWidget(widget)
+        
+        self.main_layout.addWidget(prefect_info_widget)
+        self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+
+class PunctualityGraphWidget(BaseListWidget):
+    def __init__(self):
+        super().__init__()
+        # print(THEME_MANAGER.get_current_theme())
+        sub_data = {
+            "prefect_id 1": ("Emma", [0, 0, 0, 1, 1, 2, 2, -1, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+            "prefect_id 2": ("Bambi", [0, 0, 0, -2, 1, 2, 2, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+            "prefect_id 3": ("Mikalele", [0, 0, -1, 0, 1, 1, 2, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+            "prefect_id 4": ("Jesse", [0, 0, 0, 1, 1, 2, 3, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+            "prefect_id 5": ("Tumbum", [0, 0, 0, 3, 1, 2, 0, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
+        }
+        prefect_info_widget = GraphWidget("Prefects Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
+        
+        for index, (_, (name, data)) in enumerate(sub_data.items()):
+            prefect_info_widget.plot([i + 1 for i in range(len(data))], data, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
+        
+        teacher_data = {
+            "department_id 1": ("Humanities", sub_data),
+            "department_id 2": ("Technology", sub_data),
+            "department_id 3": ("Mathematics", sub_data),
+            "department_id 4": ("English", sub_data),
+            "department_id 5": ("Physics", sub_data),
+        }
+        
+        dtd_widget, dtd_layout = create_widget(None, QVBoxLayout)
+        
+        for _, (dep_name, dep_data) in teacher_data.items():
+            dep_info_widget = GraphWidget(f"{dep_name} Department Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
+            
+            for index, (_, (name, data)) in enumerate(dep_data.items()):
+                dep_info_widget.plot([i + 1 for i in range(len(data))], data, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
+            
+            dtd_layout.addWidget(dep_info_widget)
+        
+        self.main_layout.addWidget(prefect_info_widget)
+        self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
 
 
 class _SensorMetaInfoWidget(QWidget):
@@ -159,22 +246,28 @@ class _SensorMetaInfoWidget(QWidget):
         
         self.main_layout.addWidget(LabeledField("Meta Info", widget_2_1))
 
-
-class SensorWidget(BaseWidget):
+class SensorWidget(QWidget):
     def __init__(self, sensor: Sensor):
-        super().__init__(sensor.meta_data.sensor_type)
-        # self.container.setProperty("class", "GasWidget")
+        super().__init__()
+        
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        self.container = QWidget()
+        
+        self.main_layout = QHBoxLayout()
+        self.container.setLayout(self.main_layout)
+        
+        self.labeled_container = LabeledField(sensor.meta_data.sensor_type, self.container)
+        
+        layout.addWidget(self.labeled_container)
         
         self.sensor = sensor
         
         _, layout_1 = create_widget(self.main_layout, QVBoxLayout)
         
-        label = QLabel(self.container)
-        pixmap = QPixmap(self.sensor.img_path)
-        label.setPixmap(pixmap)
-        label.setScaledContents(True)  # Optional: scale image to fit label
-        
-        layout_1.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
+        image = Image(self.sensor.img_path, parent=self.container)
+        layout_1.addWidget(image, alignment=Qt.AlignmentFlag.AlignCenter)
         # layout_1.addStretch()
         
         widget_1_2, layout_1_2 = create_widget(None, QHBoxLayout)
@@ -191,5 +284,33 @@ class SensorWidget(BaseWidget):
         
         meta_info_widget = _SensorMetaInfoWidget(self.sensor.meta_data)
         layout_2.addWidget(meta_info_widget)
+
+class UltrasonicSonarWidget(QWidget):
+    def __init__(self, sensor: Sensor):
+        super().__init__()
+        
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        self.container = QWidget()
+        
+        self.main_layout = QHBoxLayout()
+        self.container.setLayout(self.main_layout)
+        
+        self.labeled_container = LabeledField(sensor.meta_data.sensor_type, self.container)
+        
+        layout.addWidget(self.labeled_container)
+        
+        sonar_widget = SonarWidget(30)
+        
+        ultrasonic_sensor_meta_info_widget, ultrasonic_sensor_meta_info_layout = create_widget(self.main_layout, QHBoxLayout)
+        
+        ultrasonic_sensor_meta_info_layout.addWidget(Image(sensor.img_path, ultrasonic_sensor_meta_info_widget))
+        ultrasonic_sensor_meta_info_layout.addWidget(_SensorMetaInfoWidget(SensorMeta("Ultrasonic", "Super", "0.0.0.10", "Arduino LC")))
+        
+        self.main_layout.addWidget(sonar_widget)
+        
+        if sensor.reading is not None:
+            sensor.reading.data_signal.connect(lambda angles, distances: sonar_widget.update_sonar(angles, distances))
 
 

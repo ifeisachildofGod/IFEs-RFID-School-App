@@ -1,5 +1,5 @@
 
-from models import BT_Device
+from models.data_models import BT_Device
 import socket
 import asyncio
 import time
