@@ -8,10 +8,11 @@ from PyQt6.QtWidgets import (
     QAbstractItemView, QHeaderView, QMenu, QSizePolicy,
     QProgressBar, QCheckBox, QMainWindow,
     QStackedWidget, QMessageBox, QFileDialog, QToolBar,
-    QRadioButton
+    QRadioButton, QSlider, QStyle
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
+from matplotlib.cbook import flatten
 from models.data_models import *
 from models.collection_data_models import *
 from section_widgets import *
@@ -19,8 +20,6 @@ from base_widgets import *
 from theme import THEME_MANAGER
 from matplotlib.colors import get_named_colors_mapping
 
-
-DAYS_OF_THE_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
 class BaseListWidget(QWidget):
     def __init__(self) -> None:
@@ -39,69 +38,52 @@ class BaseListWidget(QWidget):
         layout.addWidget(scroll_widget)
 
 class AttendanceWidget(BaseListWidget):
-    def __init__(self, data: AppData):
+    def __init__(self, data: AppData, rfid_live_data: LiveData):
         super().__init__()
+        
+        self.data = data
+        self.attendance_dict = {}
         
         _, cit_layout = create_widget(self.main_layout, QHBoxLayout)
         
-        cit_layout.addWidget(LabeledField("Teacher Check-in Time", f"{data.teacher_cit.hour} : {data.teacher_cit.min} : {data.teacher_cit.sec}", QSizePolicy.Policy.Minimum))
-        cit_layout.addWidget(LabeledField("Prefect Check-in Time", f"{data.prefect_cit.hour} : {data.prefect_cit.min} : {data.prefect_cit.sec}", QSizePolicy.Policy.Minimum))
+        cit_layout.addWidget(LabeledField("Teacher Check-in Time", f"{self.data.teacher_cit.hour} : {self.data.teacher_cit.min} : {self.data.teacher_cit.sec}", QSizePolicy.Policy.Minimum))
+        cit_layout.addWidget(LabeledField("Prefect Check-in Time", f"{self.data.prefect_cit.hour} : {self.data.prefect_cit.min} : {self.data.prefect_cit.sec}", QSizePolicy.Policy.Minimum))
         
-        _, attendance_layout = create_widget(self.main_layout, QVBoxLayout)
+        _, self.attendance_layout = create_widget(self.main_layout, QVBoxLayout)
         
-        for staff in data.attendance_data:
-            if isinstance(staff, Teacher):
-                widget = AttendanceTeacherWidget(staff)
-            elif isinstance(staff, Prefect):
-                widget = AttendancePrefectWidget(staff)
-            else:
-                raise TypeError(f"Type: {type(staff)} is not appropriate in AppData.attendance_data")
-            
-            attendance_layout.addWidget(widget)
+        for attendance in self.data.attendance_data:
+            self.add_attendance_log(attendance.staff.IUD, attendance)
         
         self.main_layout.addStretch()
+        
+        rfid_live_data.data_signal.connect(self.add_new_attendance_log)
     
-    # def keyPressEvent(self, a0):
-    #     widget = None
+    def add_attendance_log(self, IUD: str, attendance_entry: AttendanceEntry):
+        staff = self.data.teachers.get(IUD, self.data.prefects[IUD])
         
-    #     if a0.key() == 16777220:
-    #         widget = AttendanceTeacherWidget(
-    #             Teacher(
-    #                 "13123231323",
-    #                 CharacterName("Hamza", "Yunusa", "George", "Sambisa"),
-    #                 Department("department_id 1", "Humanities"),
-    #                 [
-    #                     Subject("23123121221212132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Monday", 9)]),
-    #                     Subject("23123121221212132123", "Maths", Class("212123321231242123113", "SS2", "F", "SS2 F"), [("Tuesday", 1), ("Tuesday", 2)]),
-    #                     Subject("23123121231212132103", "English", Class("2121233212312152123113", "SS3", "E", "SS3 E"), [("Tuesday", 4), ("Tuesday", 5)]),
-    #                     Subject("23123121231212132103", "English", Class("212123323231212123113", "SS1", "B", "SS1 B"), [("Tuesday", 8), ("Tuesday", 9)]),
-    #                     Subject("23123121231212132103", "English", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Wednesday", 9)]),
-    #                     Subject("23123121231212132103", "English", Class("212123321231217123113", "SS2", "E", "SS2 E"), [("Tuesday", 8), ("Tuesday", 9)]),
-    #                     ],
-    #                 "img.png"
-    #             )
-    #         )
-    #     elif a0.text() == "p":
-    #         widget = AttendancePrefectWidget(
-    #             Prefect(
-    #                 "12010232012",
-    #                 CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma E.U"),
-    #                 "Parade Commander",
-    #                 Class("212123321231212123113", "SS2", "D", "SS2 D"),
-    #                 "img.png",
-    #                 ["Morning", "Labour", "Cadet training"]
-    #             )
-    #         )
+        if isinstance(staff, Teacher):
+            widget = AttendanceTeacherWidget(attendance_entry)
+        elif isinstance(staff, Prefect):
+            widget = AttendancePrefectWidget(attendance_entry)
+        else:
+            raise TypeError(f"Type: {type(staff)} is not supported")
         
-    #     self.main_layout.insertWidget(len(self.main_layout.children()), widget, alignment=Qt.AlignmentFlag.AlignTop)
-    #     return super().keyPressEvent(a0)
+        self.attendance_layout.addWidget(widget)
+    
+    def add_new_attendance_log(self, data: dict):
+        IUD = data["IUD"]
+        
+        day, month, date, t, year = time.ctime().split()
+        hour, min, sec = t.split(":")
+        
+        self.add_attendance_log(IUD, AttendanceEntry(Time(int(sec), int(min), int(hour)), day, int(date), month, int(year)))
 
 class PrefectEditorWidget(BaseListWidget):
-    def __init__(self, data: AppData):
+    def __init__(self, data: AppData, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
         super().__init__()
         
-        for prefect in data.prefects:
-            self.main_layout.addWidget(AttendancePrefectWidget(prefect))
+        for _, prefect in data.prefects.items():
+            self.main_layout.addWidget(EditorPrefectWidget(data, prefect, parent_widget, curr_index, card_scanner_index, staff_data_index))
         
         self.main_layout.addStretch()
     
@@ -121,11 +103,11 @@ class PrefectEditorWidget(BaseListWidget):
     #     return super().keyPressEvent(a0)
 
 class TeacherEditorWidget(BaseListWidget):
-    def __init__(self, data: AppData):
+    def __init__(self, data: AppData, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
         super().__init__()
         
-        for teacher in data.teachers:
-            self.main_layout.addWidget(AttendancePrefectWidget(teacher))
+        for _, teacher in data.teachers.items():
+            self.main_layout.addWidget(EditorTeacherWidget(data, teacher, parent_widget, curr_index, card_scanner_index, staff_data_index))
         
         self.main_layout.addStretch()
     
@@ -154,44 +136,33 @@ class AttendanceBarWidget(BaseListWidget):
     def __init__(self, data: AppData):
         super().__init__()
         
-        prefects_data = []
+        teacher_data: dict[str, tuple[str, tuple[list[str], list[int]]]] = {}
+        
+        prefect_names = []
+        prefects_attendance_data = []
+        
+        prefect_interval = get_attendance_time_interval(*data.prefect_timeline_dates)
+        teacher_interval = get_attendance_time_interval(*data.teacher_timeline_dates)
         
         for staff_attendance_data in data.attendance_data:
             if isinstance(staff_attendance_data.staff, Prefect):
-                weeks: list[list[Time]] = []
-                week = []
-                prev_day = "Monday"
-                prev_dt = 1
-                for index, (_, (day, _, dt, t, _)) in enumerate(staff_attendance_data.attendance.items()):
-                    week.append(t)
-                    
-                    if DAYS_OF_THE_WEEK.index(day) > DAYS_OF_THE_WEEK.index(prev_day) or (prev_dt != dt and DAYS_OF_THE_WEEK.index(day) == DAYS_OF_THE_WEEK.index(prev_day)) or index + 1 == len(staff_attendance_data.attendance):
-                        weeks.append(deepcopy(week))
-                        week = []
-                    
-                    prev_day = day
-                    prev_dt = dt
+                percentage_attendance = self.get_percentage_attendance(staff_attendance_data.attendance, list(staff_attendance_data.staff.duties.keys()), prefect_interval)
                 
-                yearly_punctuality = 0
+                prefect_names.append(staff_attendance_data.staff.name)
+                prefects_attendance_data.append(percentage_attendance)
+            elif isinstance(staff_attendance_data.staff, Teacher):
+                days_tba = list(set(flatten([[day for day, _ in s.periods] for s in staff_attendance_data.staff.subjects])))
                 
-                for week_time in weeks:
-                    weekly_punctuality = sum([(data.prefect_cit.hour - t.hour) * 60 + (data.prefect_cit.min - t.min) * 60 + (data.prefect_cit.sec - t.sec) / 60 for t in week_time])
-                    yearly_punctuality += weekly_punctuality
-                    
-                prefects_data.append(yearly_punctuality)
-        
-        sub_data = ["Emma", "Bambi", "Mikalele", "Jesse", "Tumbum"], [80, 90, 98, 79, 86]
+                percentage_attendance = self.get_percentage_attendance(staff_attendance_data.attendance, days_tba, teacher_interval)
+                
+                if staff_attendance_data.staff.department.id in teacher_data:
+                    teacher_data[staff_attendance_data.staff.department.id][1][0].append(staff_attendance_data.staff.name)
+                    teacher_data[staff_attendance_data.staff.department.id][1][1].append(percentage_attendance)
+                else:
+                    teacher_data[staff_attendance_data.staff.department.id] = (staff_attendance_data.staff.department.name, [(staff_attendance_data.staff.name), percentage_attendance])
         
         prefect_info_widget = BarWidget("Cummulative Prefect Attendance", "Prefect Names", "Yearly Attendance (%)")
-        prefect_info_widget.add_data("Prefects", THEME_MANAGER.get_current_palette()["prefect"], sub_data)
-        
-        teacher_data = {
-            "department_id 1": ("Humanities", sub_data),
-            "department_id 2": ("Technology", sub_data),
-            "department_id 3": ("Mathematics", sub_data),
-            "department_id 4": ("English", sub_data),
-            "department_id 5": ("Physics", sub_data),
-        }
+        prefect_info_widget.add_data("Prefects", THEME_MANAGER.get_current_palette()["prefect"], (prefect_names, prefects_attendance_data))
         
         dtd_widget, dtd_layout = create_widget(None, QVBoxLayout)
         # dtd_widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
@@ -204,6 +175,14 @@ class AttendanceBarWidget(BaseListWidget):
         
         self.main_layout.addWidget(prefect_info_widget)
         self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+    
+    def get_percentage_attendance(self, attendance: dict[str, AttendanceEntry], valid_attendance_days: list[str], interval: tuple[int, int]):
+        remainder_days = sum([day in valid_attendance_days for day in DAYS_OF_THE_WEEK[:interval[1] + 1]])
+        max_attendance = (len(valid_attendance_days) * interval[0]) + remainder_days
+        
+        percentage_attendance = len(attendance) * 100 / max_attendance
+        
+        return percentage_attendance
 
 class PunctualityGraphWidget(BaseListWidget):
     def __init__(self, data: AppData):
@@ -216,9 +195,9 @@ class PunctualityGraphWidget(BaseListWidget):
         
         for staff_attendance_data in self.data.attendance_data:
             if isinstance(staff_attendance_data.staff, Prefect):
-                prefects_data[staff_attendance_data.staff.id] = self.get_punctuality_data(staff_attendance_data)
+                prefects_data[staff_attendance_data.staff.IUD] = self.get_punctuality_data(staff_attendance_data.staff)
             elif isinstance(staff_attendance_data.staff, Teacher):
-                teacher_data[staff_attendance_data.staff.department.id][1][staff_attendance_data.staff.id] = self.get_punctuality_data(staff_attendance_data)
+                teacher_data[staff_attendance_data.staff.department.id][1][staff_attendance_data.staff.IUD] = self.get_punctuality_data(staff_attendance_data.staff)
         
         # sub_data = {
         #     "prefect_id 1": ("Emma", [0, 0, 0, 1, 1, 2, 2, -1, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
@@ -229,8 +208,8 @@ class PunctualityGraphWidget(BaseListWidget):
         # }
         prefect_info_widget = GraphWidget("Prefects Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
         
-        for index, (_, (name, data)) in enumerate(prefects_data.items()):
-            prefect_info_widget.plot([i + 1 for i in range(len(data))], data, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
+        for index, (_, (name, prefect_data)) in enumerate(prefects_data.items()):
+            prefect_info_widget.plot([i + 1 for i in range(len(prefect_data))], prefect_data, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
         
         # teacher_data = {
         #     "department_id 1": ("Humanities", sub_data),
@@ -253,28 +232,31 @@ class PunctualityGraphWidget(BaseListWidget):
         self.main_layout.addWidget(prefect_info_widget)
         self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
     
-    def get_punctuality_data(self, staff_attendance_data: AttendanceData):
+    def get_punctuality_data(self, staff: Teacher | Prefect):
         prefects_plot_data: list[float] = []
         
         weeks: list[list[Time]] = []
-        week = []
-        prev_day = "Monday"
+        
+        prev_day = DAYS_OF_THE_WEEK[0]
         prev_dt = 1
-        for index, (_, (day, _, dt, t, _)) in enumerate(staff_attendance_data.attendance.items()):
-            week.append(t)
+        
+        for _, attendance in staff.attendance.items():
+            if ((DAYS_OF_THE_WEEK.index(attendance.day) > DAYS_OF_THE_WEEK.index(prev_day)) or
+                (prev_dt != attendance.date and
+                 DAYS_OF_THE_WEEK.index(attendance.day) == DAYS_OF_THE_WEEK.index(prev_day))
+                ):
+                weeks.append([attendance.time])
+            else:
+                weeks[-1].append(attendance.time)
             
-            if DAYS_OF_THE_WEEK.index(day) > DAYS_OF_THE_WEEK.index(prev_day) or (prev_dt != dt and DAYS_OF_THE_WEEK.index(day) == DAYS_OF_THE_WEEK.index(prev_day)) or index + 1 == len(staff_attendance_data.attendance):
-                weeks.append(deepcopy(week))
-                week = []
-            
-            prev_day = day
-            prev_dt = dt
+            prev_day = attendance.day
+            prev_dt = attendance.date
         
         for week_time in weeks:
             weekly_punctuality = sum([(self.data.prefect_cit.hour - t.hour) * 60 + (self.data.prefect_cit.min - t.min) * 60 + (self.data.prefect_cit.sec - t.sec) / 60 for t in week_time])
             prefects_plot_data.append(weekly_punctuality)
         
-        return staff_attendance_data.staff.name, prefects_plot_data
+        return staff.name, prefects_plot_data
 
 
 class _SensorMetaInfoWidget(QWidget):
@@ -340,11 +322,20 @@ class SensorWidget(QWidget):
         
         widget_1_2, layout_1_2 = create_widget(None, QHBoxLayout)
         
-        self.reading_label = QLabel(self.sensor.reading.data_func() if self.sensor.reading is not None else "None")
-        if self.sensor.reading is not None:
-            self.sensor.reading.data_signal.connect(lambda data: self.reading_label.setText(str(data)))
+        widget_1_2_1_1, layout_1_2_1_1 = create_widget(None, QVBoxLayout)
         
-        layout_1_2.addWidget(LabeledField("Reading", self.reading_label))
+        self.reading_slider = QSlider(Qt.Orientation.Horizontal)
+        self.sensor.reading.data_signal.connect(lambda data: self.reading_slider.setValue(data[sensor.meta_data.sensor_type]))
+        self.reading_slider.setDisabled(True)
+        self.reading_slider.setValue(0)
+        
+        safety_reading_slider = QSlider(Qt.Orientation.Horizontal)
+        safety_reading_slider.setValue(50)
+        
+        layout_1_2_1_1.addWidget(LabeledField("Reading", self.reading_slider))
+        layout_1_2_1_1.addWidget(LabeledField("Safety Value", safety_reading_slider))
+        
+        layout_1_2.addWidget(LabeledField("Live Data", widget_1_2_1_1, QSizePolicy.Policy.Minimum))
         
         layout_1.addWidget(widget_1_2)
         
@@ -352,6 +343,9 @@ class SensorWidget(QWidget):
         
         meta_info_widget = _SensorMetaInfoWidget(self.sensor.meta_data)
         layout_2.addWidget(meta_info_widget)
+    
+    # def reading_value_changed(self):
+    #     self.reading_slider.setStyleSheet("")
 
 class UltrasonicSonarWidget(QWidget):
     def __init__(self, sensor: Sensor):
@@ -379,6 +373,6 @@ class UltrasonicSonarWidget(QWidget):
         self.main_layout.addWidget(sonar_widget)
         
         if sensor.reading is not None:
-            sensor.reading.data_signal.connect(lambda angles, distances: sonar_widget.update_sonar(angles, distances))
+            sensor.reading.data_signal.connect(lambda data: sonar_widget.update_sonar(data["angles"], data["distances"]))
 
 

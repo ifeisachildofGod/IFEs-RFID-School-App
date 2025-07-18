@@ -11,83 +11,18 @@ from PyQt6.QtWidgets import (
     QProgressBar, QCheckBox, QMainWindow,
     QStackedWidget, QMessageBox, QFileDialog, QToolBar,
 )
+from base_widgets import *
 from app_sections import *
 from models.data_models import *
 from models.object_models import *
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage
 from PyQt6.QtCore import Qt, QMimeData, QThread, QTimer
-
 from theme import ThemeManager, THEME_MANAGER
 
 
 addr = "00:19:08:36:3F:5C"
 from PyQt6.QtWidgets import QWidget, QPushButton, QStackedLayout, QHBoxLayout, QVBoxLayout, QSizePolicy, QFrame
 from PyQt6.QtCore import Qt
-
-
-class TabViewWidget(QWidget):
-    def __init__(self, tab_widget_mapping: dict[str, QWidget], bar_orientation: Literal["vertical", "horizontal"] = "horizontal"):
-        super().__init__()
-        assert bar_orientation in ("vertical", "horizontal"), f"Invalid orientation: {bar_orientation}"
-        
-        main_layout = QVBoxLayout()
-        self.setLayout(main_layout)
-        
-        tab_layout_type = QHBoxLayout if bar_orientation == "horizontal" else QVBoxLayout
-        main_layout_type = QHBoxLayout if bar_orientation == "vertical" else QVBoxLayout
-        
-        container = QWidget()
-        layout = main_layout_type()
-        container.setLayout(layout)
-        
-        self.tab_buttons: list[QPushButton] = []
-        
-        tab_widget = QWidget()
-        tab_widget.setContentsMargins(0, 0, 0, 0)
-        
-        tab_layout = tab_layout_type()
-        tab_widget.setLayout(tab_layout)
-        
-        self.bar_orientation = bar_orientation
-        
-        self.stack = QStackedWidget()
-        
-        for index, (tab_name, widget) in enumerate(tab_widget_mapping.items()):
-            tab_button = QPushButton(tab_name)
-            tab_button.setCheckable(True)
-            tab_button.clicked.connect(self._make_tab_clicked_func(index))
-            tab_button.setProperty("class", "HorizontalTab" if bar_orientation == "horizontal" else "VerticalTab")
-            tab_button.setContentsMargins(0, 0, 0, 0)
-            
-            tab_layout.addWidget(tab_button)
-            self.stack.addWidget(widget)
-            widget.setContentsMargins(0, 0, 0, 0)
-            
-            self.tab_buttons.append(tab_button)
-        
-        if bar_orientation == "vertical":
-            tab_layout.addStretch()
-        
-        self.setContentsMargins(0, 0, 0, 0)
-        tab_widget.setContentsMargins(0, 0, 0, 0)
-        self.stack.setContentsMargins(0, 0, 0, 0)
-        
-        layout.addWidget(tab_widget)
-        layout.addWidget(self.stack)
-        
-        self.tab_buttons[0].click()
-        
-        main_layout.addWidget(container)
-    
-    def _make_tab_clicked_func(self, index: int):
-        def func():
-            self.stack.setCurrentIndex(index)
-            
-            for i, button in enumerate(self.tab_buttons):
-                if i != index:
-                    button.setChecked(False)
-        
-        return func
 
 
 class Window(QMainWindow):
@@ -120,21 +55,22 @@ class Window(QMainWindow):
         safety_layout.addWidget(gas_widget, alignment=Qt.AlignmentFlag.AlignCenter)
         safety_layout.addWidget(flame_widget, alignment=Qt.AlignmentFlag.AlignCenter)
         
+        data = AppData()
+        bt_data = LiveData(pyqtSignal(dict))
         
         # Create stacked widget for content
-        main_layout.addWidget(TabViewWidget({
-            "Staff": TabViewWidget(
-                {
-                    "Attendance": AttendanceWidget(),
-                    "Attendance Graph": AttendanceBarWidget(),
-                    "Punctuality Graph": PunctualityGraphWidget(),
-                    "Prefect Editor": PrefectEditorWidget(),
-                    "Teacher Editor": TeacherEditorWidget(),
-                    },
-                "vertical"),
-            "Security": UltrasonicSonarWidget(),
-            "Safety": safety_widget
-            }))
+        
+        staff_widget = TabViewWidget("vertical")
+        staff_widget.add("Attendance", AttendanceWidget(data, bt_data))
+        staff_widget.add("Attendance Graph", AttendanceBarWidget(data))
+        staff_widget.add("Punctuality Graph", PunctualityGraphWidget(data))
+        staff_widget.add("Prefect Editor", PrefectEditorWidget(data, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
+        staff_widget.add("Teacher Editor", TeacherEditorWidget(data, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
+        
+        main_screen_widget = TabViewWidget()
+        main_screen_widget.add("Staff", staff_widget)
+        main_screen_widget.add("Security", UltrasonicSonarWidget(Sensor(SensorMeta("Ultrasonic", "Floating birf", "8.9.1", "Arduino inc"), "img.png")))
+        main_screen_widget.add("Safety", safety_widget)
         
         self.setCentralWidget(container)
     

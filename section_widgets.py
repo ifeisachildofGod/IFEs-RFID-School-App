@@ -17,13 +17,16 @@ from models.collection_data_models import *
 from models.data_models import *
 from models.object_models import *
 from base_widgets import *
+from extra_widgets import *
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
 
 
 class BaseEditorWidget(QWidget):
-    def __init__(self, base: Prefect | Teacher):
+    def __init__(self, data: AppData, base: Prefect | Teacher, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
         super().__init__()
+        
+        self.data = data
         
         self.base = base
         
@@ -35,6 +38,13 @@ class BaseEditorWidget(QWidget):
         self.container.setLayout(self.main_layout)
         
         layout.addWidget(self.container)
+        
+        self.curr_index = curr_index
+        
+        self.staff_data_index = staff_data_index
+        self.card_scanner_index = card_scanner_index
+        
+        self.parent_widget = parent_widget
         
         _, main_info_layout = create_widget(self.main_layout, QHBoxLayout)
         
@@ -54,16 +64,28 @@ class BaseEditorWidget(QWidget):
         self.options_button.setFixedSize(40, 40)
         self.options_button.clicked.connect(self.toogle_options)
         
-        self.options_menu = OptionsMenu({"Set IUD": print, "View Punctuality Graph": print})
+        self.options_menu = OptionsMenu({"Set IUD": self.set_iud, "View Punctuality Data": self.view_punctuality_data})
         
         main_info_layout.addWidget(self.options_button, alignment=Qt.AlignmentFlag.AlignTop)
         
         _, self.sub_info_layout = create_widget(self.main_layout, QHBoxLayout)
         
-        id_label = QLabel(self.base.id)
-        id_label.setStyleSheet("font-weight: bold;")
+        iud_label = QLabel(self.base.IUD)
+        iud_label.setStyleSheet("font-weight: bold;")
         
-        self.sub_info_layout.addWidget(LabeledField("IUD", id_label), alignment=Qt.AlignmentFlag.AlignLeft)
+        self.sub_info_layout.addWidget(LabeledField("IUD", iud_label), alignment=Qt.AlignmentFlag.AlignLeft)
+    
+    def set_iud(self):
+        card_scanner_widget: CardScanScreenWidget = self.parent_widget.widget(self.card_scanner_index)
+        card_scanner_widget.set_self(self.base, self.curr_index)
+        
+        self.parent_widget.setCurrentIndex(self.card_scanner_index)
+    
+    def view_punctuality_data(self):
+        card_scanner_widget: StaffDataWidget = self.parent_widget.widget(self.staff_data_index)
+        card_scanner_widget.set_self(self.base, self.curr_index)
+        
+        self.parent_widget.setCurrentIndex(self.staff_data_index)
     
     def toogle_options(self):
         if self.options_menu.isVisible():
@@ -112,7 +134,7 @@ class BaseAttendanceWidget(QWidget):
 
 
 class AttendanceTeacherWidget(BaseAttendanceWidget):
-    def __init__(self, data: AttendanceData, date: str):
+    def __init__(self, data: AttendanceEntry):
         super().__init__("Teacher")
         
         self.labeled_container.setProperty("class", "AttendanceTeacherWidget")
@@ -130,20 +152,18 @@ class AttendanceTeacherWidget(BaseAttendanceWidget):
         
         layout_1.addWidget(widget_1_2)
         
-        day, month, dt, t, year = data.attendance[date]
-        
         widget_1_2_1, layout_1_2_1 = create_widget(None, QHBoxLayout)
         
-        layout_1_2_1.addWidget(LabeledField("Day", QLabel(day)))
-        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(dt))} of {month}, {year}")))
+        layout_1_2_1.addWidget(LabeledField("Day", QLabel(data.day)))
+        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(data.date))} of {data.month}, {data.year}")))
         
         layout_1_2.addWidget(LabeledField("Day", widget_1_2_1))
         
         widget_1_2_2, layout_1_2_2 = create_widget(None, QHBoxLayout)
         
-        layout_1_2_2.addWidget(LabeledField("Hr", QLabel(str(t.hour))))
-        layout_1_2_2.addWidget(LabeledField("Min", QLabel(str(t.min))))
-        layout_1_2_2.addWidget(LabeledField("Sec", QLabel(str(t.sec))))
+        layout_1_2_2.addWidget(LabeledField("Hr", QLabel(str(data.time.hour))))
+        layout_1_2_2.addWidget(LabeledField("Min", QLabel(str(data.time.min))))
+        layout_1_2_2.addWidget(LabeledField("Sec", QLabel(str(data.time.sec))))
         
         layout_1_2.addWidget(LabeledField("Time", widget_1_2_2))
         
@@ -158,11 +178,11 @@ class AttendanceTeacherWidget(BaseAttendanceWidget):
         
         layout_2_2.addWidget(LabeledField("Subjects", widget_2_2_2, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
         
-        periods_data = {}
+        periods_data: dict[tuple[str, str], dict[tuple[str, str], list[int]]] = {}
         
         for subject in self.teacher.subjects:
             for day_name, period in subject.periods:
-                if day in day_name:
+                if data.day == day_name:
                     key = subject.id, subject.name
                     sub_key = subject.cls.id, subject.cls.name
                     
@@ -183,7 +203,7 @@ class AttendanceTeacherWidget(BaseAttendanceWidget):
             layout_2_2_2.addWidget(LabeledField(subject_name, widget_2_2_2_1))
 
 class AttendancePrefectWidget(BaseAttendanceWidget):
-    def __init__(self, data: AttendanceData, date: str):
+    def __init__(self, data: AttendanceEntry):
         super().__init__("Prefect")
         
         self.labeled_container.setProperty("class", "AttendancePrefectWidget")
@@ -201,20 +221,18 @@ class AttendancePrefectWidget(BaseAttendanceWidget):
         
         layout_1.addWidget(widget_1_2)
         
-        day, month, dt, t, year = data.attendance[date]
-        
         widget_1_2_1, layout_1_2_1 = create_widget(None, QHBoxLayout)
         
-        layout_1_2_1.addWidget(LabeledField("Day", QLabel(day)))
-        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(dt))} of {month}, {year}")))
+        layout_1_2_1.addWidget(LabeledField("Day", QLabel(data.day)))
+        layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(data.date))} of {data.month}, {data.year}")))
         
         layout_1_2.addWidget(LabeledField("Day", widget_1_2_1))
         
         widget_1_2_2, layout_1_2_2 = create_widget(None, QHBoxLayout)
         
-        layout_1_2_2.addWidget(LabeledField("Hr", QLabel(str(t.hour))))
-        layout_1_2_2.addWidget(LabeledField("Min", QLabel(str(t.min))))
-        layout_1_2_2.addWidget(LabeledField("Sec", QLabel(str(t.sec))))
+        layout_1_2_2.addWidget(LabeledField("Hr", QLabel(str(data.time.hour))))
+        layout_1_2_2.addWidget(LabeledField("Min", QLabel(str(data.time.min))))
+        layout_1_2_2.addWidget(LabeledField("Sec", QLabel(str(data.time.sec))))
         
         layout_1_2.addWidget(LabeledField("Time", widget_1_2_2))
         
@@ -229,7 +247,7 @@ class AttendancePrefectWidget(BaseAttendanceWidget):
         
         widget_1_3_1, layout_1_3_1 = create_scrollable_widget(None, QVBoxLayout)
         
-        for index, duty in enumerate(self.prefect.duties.get(day, [])):
+        for index, duty in enumerate(self.prefect.duties.get(data.day, [])):
             layout_1_3_1.addWidget(QLabel(f"{index + 1}. {duty}"))
         
         layout_2_2.addWidget(LabeledField("Duties", widget_1_3_1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
@@ -238,16 +256,16 @@ class AttendancePrefectWidget(BaseAttendanceWidget):
 
 
 class EditorPrefectWidget(BaseEditorWidget):
-    def __init__(self, prefect: Prefect):
-        super().__init__(prefect)
+    def __init__(self, data: AppData, prefect: Prefect, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+        super().__init__(data, prefect, parent_widget, curr_index, card_scanner_index, staff_data_index)
         self.container.setProperty("class", "EditorPrefectWidget")
         
         self.sub_info_layout.addWidget(LabeledField("Post", QLabel(self.base.post_name)), alignment=Qt.AlignmentFlag.AlignCenter)
         self.sub_info_layout.addWidget(LabeledField("Class", QLabel(self.base.cls.name)), alignment=Qt.AlignmentFlag.AlignRight)
 
 class EditorTeacherWidget(BaseEditorWidget):
-    def __init__(self, teacher: Teacher):
-        super().__init__(teacher)
+    def __init__(self, data: AppData, teacher: Teacher, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+        super().__init__(data, teacher, parent_widget, curr_index, card_scanner_index, staff_data_index)
         self.container.setProperty("class", "EditorTeacherWidget")
         
         self.sub_info_layout.addWidget(LabeledField("Dept", QLabel(self.base.department.name), QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum), alignment=Qt.AlignmentFlag.AlignRight)

@@ -1,7 +1,12 @@
 from PyQt6.QtCore import pyqtSignal, pyqtBoundSignal
 from dataclasses import dataclass
-from os import PathLike
 from typing import Callable
+
+@dataclass
+class Time:
+    sec: float
+    min: int
+    hour: int
 
 @dataclass
 class BT_Device:

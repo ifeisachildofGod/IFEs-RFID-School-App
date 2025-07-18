@@ -1,8 +1,16 @@
-from PyQt6.QtCore import pyqtSignal, pyqtBoundSignal
 from dataclasses import dataclass
 from os import PathLike
-from typing import Callable
 from models.data_models import *
+
+@dataclass
+class AttendanceEntry:
+    time: Time
+    day: str
+    date: int
+    month: str
+    year: int
+    
+    staff: "Teacher" | "Prefect" | None = None
 
 @dataclass
 class Class:
@@ -23,25 +31,25 @@ class Subject:
 @dataclass
 class Teacher:
     id: str
+    IUD: str
     
     name: CharacterName
     department: Department
     subjects: list[Subject]
     img_path: str | PathLike
-    punctuality: float = 1.0
-    popularity: float = 1.0
+    attendance: dict[str, AttendanceEntry]
 
 @dataclass
 class Prefect:
     id: str
+    IUD: str
     
     name: CharacterName
     post_name: str
     cls: Class
     img_path: str | PathLike
     duties: dict[str, list[str]]
-    punctuality: float = 1.0
-    popularity: float = 1.0
+    attendance: dict[str, AttendanceEntry]
 
 
 @dataclass

@@ -1,5 +1,5 @@
 
-from typing import Callable
+from typing import Callable, Literal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QApplication, QGridLayout,
@@ -15,6 +15,43 @@ from PyQt6.QtCore import Qt
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+
+DAYS_OF_THE_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+MONTHS_OF_THE_YEAR = {
+    "January": 31,
+    "February": 29,
+    "March": 31,
+    "April": 30,
+    "May": 31,
+    "June": 30,
+    "July": 31,
+    "August": 31,
+    "September": 30,
+    "October": 31,
+    "November": 30,
+    "December": 31,
+}
+
+
+def get_attendance_time_interval(min_timeline_dates, max_timeline_dates):
+    interval = None
+    start_days = None
+    end_days = None
+    for index, (month, _) in enumerate(MONTHS_OF_THE_YEAR.items()):
+        if min_timeline_dates.month == month:
+            start_days = sum(list(MONTHS_OF_THE_YEAR.values())[:index]) + min_timeline_dates.date
+        if max_timeline_dates.month == month:
+            year_addition = (max_timeline_dates.year - min_timeline_dates.year) * 360
+            end_days = sum(list(MONTHS_OF_THE_YEAR.values())[:index]) + max_timeline_dates.date + year_addition
+        
+        if start_days is not None and end_days is not None:
+            diff = end_days - start_days
+            week_amt = int(diff / 7)
+            interval = week_amt, week_amt % 7
+            break
+    
+    return interval
+
 
 def create_widget(parent_layout: QLayout | None, layout_type: type[QHBoxLayout] | type[QVBoxLayout] | type[QGridLayout]):
     widget = QWidget()
@@ -39,6 +76,88 @@ def create_scrollable_widget(parent_layout: QLayout | None, layout_type: type[QH
     
     return scroll_widget, layout
 
+
+
+class TabViewWidget(QWidget):
+    def __init__(self, bar_orientation: Literal["vertical", "horizontal"] = "horizontal"):
+        super().__init__()
+        self.bar_orientation = bar_orientation
+        
+        assert self.bar_orientation in ("vertical", "horizontal"), f"Invalid orientation: {self.bar_orientation}"
+        
+        main_layout = QVBoxLayout()
+        self.setLayout(main_layout)
+        
+        tab_layout_type = QHBoxLayout if self.bar_orientation == "horizontal" else QVBoxLayout
+        main_layout_type = QHBoxLayout if self.bar_orientation == "vertical" else QVBoxLayout
+        
+        container = QWidget()
+        layout = main_layout_type()
+        container.setLayout(layout)
+        
+        self.tab_buttons: list[QPushButton] = []
+        
+        tab_widget = QWidget()
+        tab_widget.setContentsMargins(0, 0, 0, 0)
+        
+        self.tab_layout = tab_layout_type()
+        tab_widget.setLayout(self.tab_layout)
+        
+        self.stack = QStackedWidget()
+        
+        # for tab_name, widget in tab_widget_mapping.items():
+        #     self.add(tab_name, widget)
+            # tab_button = QPushButton(tab_name)
+            # tab_button.setCheckable(True)
+            # tab_button.clicked.connect(self._make_tab_clicked_func(index))
+            # tab_button.setProperty("class", "HorizontalTab" if self.bar_orientation == "horizontal" else "VerticalTab")
+            # tab_button.setContentsMargins(0, 0, 0, 0)
+            
+            # self.tab_layout.addWidget(tab_button)
+            # self.stack.addWidget(widget)
+            # widget.setContentsMargins(0, 0, 0, 0)
+            
+            # self.tab_buttons.append(tab_button)
+        
+        if self.bar_orientation == "vertical":
+            self.tab_layout.addStretch()
+        
+        self.setContentsMargins(0, 0, 0, 0)
+        tab_widget.setContentsMargins(0, 0, 0, 0)
+        self.stack.setContentsMargins(0, 0, 0, 0)
+        
+        layout.addWidget(tab_widget)
+        layout.addWidget(self.stack)
+        
+        self.tab_buttons[0].click()
+        
+        main_layout.addWidget(container)
+    
+    def _make_tab_clicked_func(self, index: int):
+        def func():
+            self.stack.setCurrentIndex(index)
+            
+            for i, button in enumerate(self.tab_buttons):
+                if i != index:
+                    button.setChecked(False)
+        
+        return func
+    
+    def add(self, tab_name: str, widget: QWidget):
+        tab_button = QPushButton(tab_name)
+        tab_button.setCheckable(True)
+        tab_button.clicked.connect(self._make_tab_clicked_func(len(self.tab_buttons)))
+        tab_button.setProperty("class", "HorizontalTab" if self.bar_orientation == "horizontal" else "VerticalTab")
+        tab_button.setContentsMargins(0, 0, 0, 0)
+        
+        self.tab_layout.addWidget(tab_button)
+        self.stack.addWidget(widget)
+        widget.setContentsMargins(0, 0, 0, 0)
+        
+        self.tab_buttons.append(tab_button)
+
+
+
 class OptionsMenu(QFrame):
     def __init__(self, options: dict[str, Callable], parent=None):
         super().__init__(parent)
@@ -60,8 +179,6 @@ class OptionsMenu(QFrame):
             self.hide()
         
         return func
-
-
 
 class Image(QLabel):
     def __init__(self, path: str, parent=None, width: int | None = None, height: int | None = None):
@@ -192,7 +309,6 @@ class GraphCanvas(FigureCanvas):
         self.axes.plot(x, y, **kwargs)
         self.axes.legend()
         self.draw()
-
 
 
 
