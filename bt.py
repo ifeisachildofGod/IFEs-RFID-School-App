@@ -1,12 +1,10 @@
 
-from models.data_models import BT_Device
 import socket
 import asyncio
-import time
+import bluetooth
 from typing import Callable
 from bleak import BleakScanner
-import bluetooth
-
+from models.data_models import BT_Device
 
 
 class Bluetooth:

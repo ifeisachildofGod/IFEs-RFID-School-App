@@ -16,7 +16,7 @@ from widgets.section_widgets import *
 from models.data_models import *
 from models.object_models import *
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage
-from PyQt6.QtCore import Qt, QMimeData, QThread, QTimer
+from PyQt6.QtCore import Qt, QMimeData, QThread, QTimer, pyqtSignal
 from theme.theme import ThemeManager, THEME_MANAGER
 
 

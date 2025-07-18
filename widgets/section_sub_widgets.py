@@ -1,25 +1,17 @@
 
-import time
-import numpy as np
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
-    QApplication, QGridLayout,
-    QLineEdit, QPushButton, QScrollArea,
-    QTableWidget, QLabel, QFrame,
-    QAbstractItemView, QHeaderView, QMenu, QSizePolicy,
-    QProgressBar, QCheckBox, QMainWindow,
-    QStackedWidget, QMessageBox, QFileDialog, QToolBar,
-    QLayout
+    QGridLayout, QPushButton, QLabel,
+    QSizePolicy, QStackedWidget
 )
+
 from PyQt6.QtCore import Qt, QPoint
-from matplotlib.figure import Figure
-from widgets.base_widgets import *
-from widgets.extra_widgets import *
+
 from models.data_models import *
 from models.object_models import *
+from widgets.base_widgets import *
+from widgets.extra_widgets import *
 from models.collection_data_models import *
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
 
 
 class BaseEditorWidget(QWidget):
@@ -169,7 +161,7 @@ class AttendanceTeacherWidget(BaseAttendanceWidget):
         
         _, layout_2 = create_widget(self.main_layout, QVBoxLayout)
         
-        name_widget = _CharacterNameWidget(self.teacher.name)
+        name_widget = CharacterNameWidget(self.teacher.name)
         layout_2.addWidget(name_widget)
         
         _, layout_2_2 = create_widget(layout_2, QVBoxLayout)
@@ -238,7 +230,7 @@ class AttendancePrefectWidget(BaseAttendanceWidget):
         
         _, layout_2 = create_widget(self.main_layout, QVBoxLayout)
         
-        name_widget = _CharacterNameWidget(self.prefect.name)
+        name_widget = CharacterNameWidget(self.prefect.name)
         layout_2.addWidget(name_widget)
         
         widget_2_2, layout_2_2 = create_widget(None, QHBoxLayout)
@@ -269,44 +261,5 @@ class EditorTeacherWidget(BaseEditorWidget):
         self.container.setProperty("class", "EditorTeacherWidget")
         
         self.sub_info_layout.addWidget(LabeledField("Dept", QLabel(self.base.department.name), QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum), alignment=Qt.AlignmentFlag.AlignRight)
-
-
-class _CharacterNameWidget(QWidget):
-    def __init__(self, name: CharacterName):
-        super().__init__()
-        self.name = name
-        
-        self.main_layout = QVBoxLayout()
-        self.setLayout(self.main_layout)
-        
-        widget_2_1 = QWidget()
-        layout_2_1 = QVBoxLayout()
-        widget_2_1.setLayout(layout_2_1)
-        
-        widget_2_1_1 = QWidget()
-        layout_2_1_1 = QHBoxLayout()
-        widget_2_1_1.setLayout(layout_2_1_1)
-        layout_2_1.addWidget(widget_2_1_1)
-        
-        name_1 = LabeledField("Surname", QLabel(self.name.sur))
-        name_2 = LabeledField("First name", QLabel(self.name.first))
-        name_3 = LabeledField("Middle name", QLabel(self.name.middle))
-        
-        layout_2_1_1.addWidget(name_1)
-        layout_2_1_1.addWidget(name_2)
-        layout_2_1_1.addWidget(name_3)
-        
-        widget_2_1_2 = QWidget()
-        layout_2_1_2 = QHBoxLayout()
-        widget_2_1_2.setLayout(layout_2_1_2)
-        layout_2_1.addWidget(widget_2_1_2)
-        
-        name_4 = LabeledField("Other name", QLabel(self.name.other if self.name.other is not None else "No other name"))
-        name_5 = LabeledField("Abbreviation", QLabel(self.name.abrev))
-        
-        layout_2_1_2.addWidget(name_4)
-        layout_2_1_2.addWidget(name_5, alignment=Qt.AlignmentFlag.AlignRight)
-        
-        self.main_layout.addWidget(LabeledField("Names", widget_2_1))
 
 

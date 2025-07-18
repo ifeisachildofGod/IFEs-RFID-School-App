@@ -1,6 +1,6 @@
-from PyQt6.QtCore import pyqtSignal, pyqtBoundSignal
+
 from dataclasses import dataclass
-from typing import Callable
+from PyQt6.QtCore import pyqtBoundSignal
 
 @dataclass
 class Time:

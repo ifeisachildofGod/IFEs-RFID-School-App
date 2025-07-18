@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+
 from os import PathLike
 from models.data_models import *
+from dataclasses import dataclass
 
 @dataclass
 class Class:

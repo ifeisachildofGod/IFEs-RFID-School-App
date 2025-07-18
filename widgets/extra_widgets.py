@@ -1,26 +1,16 @@
 
-import time
-from typing import Callable
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout,
-    QApplication, QGridLayout,
-    QLineEdit, QPushButton, QScrollArea,
-    QTableWidget, QLabel, QFrame,
-    QAbstractItemView, QHeaderView, QMenu, QSizePolicy,
-    QProgressBar, QCheckBox, QMainWindow,
-    QStackedWidget, QMessageBox, QFileDialog, QToolBar,
-    QLayout
+    QWidget, QVBoxLayout, QPushButton,
+    QLabel, QStackedWidget
 )
-import numpy as np
+
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
-from matplotlib.figure import Figure
-from matplotlib.cbook import flatten
 from matplotlib.colors import get_named_colors_mapping
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from widgets.base_widgets import *
+
 from models.data_models import *
 from models.object_models import *
+from widgets.base_widgets import *
+from matplotlib.cbook import flatten
 from models.collection_data_models import *
 
 
@@ -57,7 +47,6 @@ class BaseExtraWidget(QWidget):
         
         self.staff = None
         self.staff_index = None
-
 
 
 class StaffDataWidget(BaseExtraWidget):
@@ -139,7 +128,6 @@ class StaffDataWidget(BaseExtraWidget):
             self.punctuality_widget.plot(x, y, label=date, marker='o', color=list(get_named_colors_mapping().values())[index])
         
         self.main_layout.addWidget(self.punctuality_widget)
-
 
 class CardScanScreenWidget(BaseExtraWidget):
     def __init__(self, rfid_live_data: LiveData, parent_widget: QStackedWidget):

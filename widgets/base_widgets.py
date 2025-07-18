@@ -1,20 +1,17 @@
 
-from typing import Callable, Literal
+from typing import Callable
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
-    QApplication, QGridLayout,
-    QLineEdit, QPushButton, QScrollArea,
-    QTableWidget, QLabel, QFrame,
-    QAbstractItemView, QHeaderView, QMenu, QSizePolicy,
-    QProgressBar, QCheckBox, QMainWindow,
-    QStackedWidget, QMessageBox, QFileDialog, QToolBar,
-    QLayout
+    QGridLayout, QPushButton, QScrollArea,
+    QLabel, QFrame, QSizePolicy, QLayout
 )
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt
+
 import numpy as np
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap
 from matplotlib.figure import Figure
+from models.data_models import CharacterName
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 
 DAYS_OF_THE_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
@@ -83,7 +80,6 @@ class OptionsMenu(QFrame):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.Popup)
         self.setFrameShape(QFrame.Shape.Box)
-        # self.setStyleSheet("background-color: #f0f0f0; border: 1px solid #aaa;")
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
@@ -156,6 +152,44 @@ class LabeledField(QWidget):
 
     def get_widget(self):
         return self.widget.findChild(QWidget)
+
+class CharacterNameWidget(QWidget):
+    def __init__(self, name: CharacterName):
+        super().__init__()
+        self.name = name
+        
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+        
+        widget_2_1 = QWidget()
+        layout_2_1 = QVBoxLayout()
+        widget_2_1.setLayout(layout_2_1)
+        
+        widget_2_1_1 = QWidget()
+        layout_2_1_1 = QHBoxLayout()
+        widget_2_1_1.setLayout(layout_2_1_1)
+        layout_2_1.addWidget(widget_2_1_1)
+        
+        name_1 = LabeledField("Surname", QLabel(self.name.sur))
+        name_2 = LabeledField("First name", QLabel(self.name.first))
+        name_3 = LabeledField("Middle name", QLabel(self.name.middle))
+        
+        layout_2_1_1.addWidget(name_1)
+        layout_2_1_1.addWidget(name_2)
+        layout_2_1_1.addWidget(name_3)
+        
+        widget_2_1_2 = QWidget()
+        layout_2_1_2 = QHBoxLayout()
+        widget_2_1_2.setLayout(layout_2_1_2)
+        layout_2_1.addWidget(widget_2_1_2)
+        
+        name_4 = LabeledField("Other name", QLabel(self.name.other if self.name.other is not None else "No other name"))
+        name_5 = LabeledField("Abbreviation", QLabel(self.name.abrev))
+        
+        layout_2_1_2.addWidget(name_4)
+        layout_2_1_2.addWidget(name_5, alignment=Qt.AlignmentFlag.AlignRight)
+        
+        self.main_layout.addWidget(LabeledField("Names", widget_2_1))
 
 
 

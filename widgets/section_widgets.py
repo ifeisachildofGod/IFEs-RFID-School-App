@@ -1,24 +1,21 @@
 
-from copy import deepcopy
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
-    QApplication,
-    QLineEdit, QPushButton, QScrollArea,
-    QTableWidget, QLabel, QFrame,
-    QAbstractItemView, QHeaderView, QMenu, QSizePolicy,
-    QProgressBar, QCheckBox, QMainWindow,
-    QStackedWidget, QMessageBox, QFileDialog, QToolBar,
-    QRadioButton, QSlider, QStyle
+    QPushButton, QScrollArea, QLabel,
+    QSizePolicy, QStackedWidget, QSlider
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
+
+from time import time
+from typing import Literal
+from PyQt6.QtCore import Qt
 from matplotlib.cbook import flatten
-from widgets.base_widgets import *
-from widgets.section_sub_widgets import *
-from models.data_models import *
-from models.collection_data_models import *
 from theme.theme import THEME_MANAGER
 from matplotlib.colors import get_named_colors_mapping
+
+from models.data_models import *
+from widgets.base_widgets import *
+from widgets.section_sub_widgets import *
+from models.collection_data_models import *
 
 
 

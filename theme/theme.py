@@ -1,19 +1,7 @@
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout,
-    QApplication,
-    QLineEdit, QPushButton, QScrollArea,
-    QTableWidget, QLabel, QFrame,
-    QAbstractItemView, QHeaderView, QMenu, QSizePolicy,
-    QProgressBar, QCheckBox, QMainWindow,
-    QStackedWidget, QMessageBox, QFileDialog, QToolBar,
-    QRadioButton
-)
-
-import json
 import os
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication
+import json
+from PyQt6.QtWidgets import QApplication
 
 
 stylesheet = '''
