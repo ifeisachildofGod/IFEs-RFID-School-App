@@ -13,12 +13,81 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
 from matplotlib.cbook import flatten
+from widgets.base_widgets import *
+from widgets.section_sub_widgets import *
 from models.data_models import *
 from models.collection_data_models import *
-from section_widgets import *
-from base_widgets import *
-from theme import THEME_MANAGER
+from theme.theme import THEME_MANAGER
 from matplotlib.colors import get_named_colors_mapping
+
+
+
+
+class TabViewWidget(QWidget):
+    def __init__(self, bar_orientation: Literal["vertical", "horizontal"] = "horizontal"):
+        super().__init__()
+        self.bar_orientation = bar_orientation
+        
+        assert self.bar_orientation in ("vertical", "horizontal"), f"Invalid orientation: {self.bar_orientation}"
+        
+        main_layout = QVBoxLayout()
+        self.setLayout(main_layout)
+        
+        tab_layout_type = QHBoxLayout if self.bar_orientation == "horizontal" else QVBoxLayout
+        main_layout_type = QHBoxLayout if self.bar_orientation == "vertical" else QVBoxLayout
+        
+        container = QWidget()
+        layout = main_layout_type()
+        container.setLayout(layout)
+        
+        self.tab_buttons: list[QPushButton] = []
+        
+        tab_widget = QWidget()
+        tab_widget.setContentsMargins(0, 0, 0, 0)
+        
+        self.tab_layout = tab_layout_type()
+        tab_widget.setLayout(self.tab_layout)
+        
+        self.stack = QStackedWidget()
+        
+        if self.bar_orientation == "vertical":
+            self.tab_layout.addStretch()
+        
+        self.setContentsMargins(0, 0, 0, 0)
+        tab_widget.setContentsMargins(0, 0, 0, 0)
+        self.stack.setContentsMargins(0, 0, 0, 0)
+        
+        layout.addWidget(tab_widget)
+        layout.addWidget(self.stack)
+        
+        main_layout.addWidget(container)
+    
+    def add(self, tab_name: str, widget: QWidget):
+        tab_button = QPushButton(tab_name)
+        tab_button.setCheckable(True)
+        tab_button.clicked.connect(self._make_tab_clicked_func(len(self.tab_buttons)))
+        tab_button.setProperty("class", "HorizontalTab" if self.bar_orientation == "horizontal" else "VerticalTab")
+        tab_button.setContentsMargins(0, 0, 0, 0)
+        
+        self.tab_layout.insertWidget(len(self.tab_buttons), tab_button)
+        self.stack.insertWidget(len(self.tab_buttons), widget)
+        widget.setContentsMargins(0, 0, 0, 0)
+        
+        self.tab_buttons.append(tab_button)
+        
+        self.tab_buttons[0].click()
+    
+    def _make_tab_clicked_func(self, index: int):
+        def func():
+            self.stack.setCurrentIndex(index)
+            
+            for i, button in enumerate(self.tab_buttons):
+                if i != index:
+                    button.setChecked(False)
+        
+        return func
+
+
 
 
 class BaseListWidget(QWidget):
@@ -37,6 +106,8 @@ class BaseListWidget(QWidget):
         
         layout.addWidget(scroll_widget)
 
+
+
 class AttendanceWidget(BaseListWidget):
     def __init__(self, data: AppData, rfid_live_data: LiveData):
         super().__init__()
@@ -46,8 +117,21 @@ class AttendanceWidget(BaseListWidget):
         
         _, cit_layout = create_widget(self.main_layout, QHBoxLayout)
         
-        cit_layout.addWidget(LabeledField("Teacher Check-in Time", f"{self.data.teacher_cit.hour} : {self.data.teacher_cit.min} : {self.data.teacher_cit.sec}", QSizePolicy.Policy.Minimum))
-        cit_layout.addWidget(LabeledField("Prefect Check-in Time", f"{self.data.prefect_cit.hour} : {self.data.prefect_cit.min} : {self.data.prefect_cit.sec}", QSizePolicy.Policy.Minimum))
+        cit_teacher_widget, cit_teacher_layout = create_widget(cit_layout, QHBoxLayout)
+        
+        cit_teacher_layout.addWidget(LabeledField("Hour", QLabel(("0" if self.data.teacher_cit.hour < 10 else "") + str(self.data.teacher_cit.hour))))
+        cit_teacher_layout.addWidget(LabeledField("Minutes", QLabel(("0" if self.data.teacher_cit.min < 10 else "") + str(self.data.teacher_cit.min))))
+        cit_teacher_layout.addWidget(LabeledField("Seconds", QLabel(("0" if self.data.teacher_cit.sec < 10 else "") + str(self.data.teacher_cit.sec))))
+        
+        cit_layout.addWidget(LabeledField("Teacher Check-in Time", cit_teacher_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum))
+        
+        cit_prefect_widget, cit_prefect_layout = create_widget(cit_layout, QHBoxLayout)
+        
+        cit_prefect_layout.addWidget(LabeledField("Hour", QLabel(("0" if self.data.prefect_cit.hour < 10 else "") + str(self.data.prefect_cit.hour))))
+        cit_prefect_layout.addWidget(LabeledField("Minutes", QLabel(("0" if self.data.prefect_cit.min < 10 else "") + str(self.data.prefect_cit.min))))
+        cit_prefect_layout.addWidget(LabeledField("Seconds", QLabel(("0" if self.data.prefect_cit.sec < 10 else "") + str(self.data.prefect_cit.sec))))
+        
+        cit_layout.addWidget(LabeledField("Prefect Check-in Time", cit_prefect_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum))
         
         _, self.attendance_layout = create_widget(self.main_layout, QVBoxLayout)
         
@@ -76,7 +160,8 @@ class AttendanceWidget(BaseListWidget):
         day, month, date, t, year = time.ctime().split()
         hour, min, sec = t.split(":")
         
-        self.add_attendance_log(IUD, AttendanceEntry(Time(int(sec), int(min), int(hour)), day, int(date), month, int(year)))
+        self.add_attendance_log(IUD, AttendanceEntry(Time(int(hour), int(min), int(sec)), day, int(date), month, int(year)))
+
 
 class PrefectEditorWidget(BaseListWidget):
     def __init__(self, data: AppData, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
@@ -131,6 +216,7 @@ class TeacherEditorWidget(BaseListWidget):
     #         self.main_layout.insertWidget(len(self.main_layout.children()), EditorTeacherWidget(t), alignment=Qt.AlignmentFlag.AlignTop)
         
     #     return super().keyPressEvent(a0)
+
 
 class AttendanceBarWidget(BaseListWidget):
     def __init__(self, data: AppData):
@@ -325,7 +411,8 @@ class SensorWidget(QWidget):
         widget_1_2_1_1, layout_1_2_1_1 = create_widget(None, QVBoxLayout)
         
         self.reading_slider = QSlider(Qt.Orientation.Horizontal)
-        self.sensor.reading.data_signal.connect(lambda data: self.reading_slider.setValue(data[sensor.meta_data.sensor_type]))
+        if self.sensor.reading is not None:
+            self.sensor.reading.data_signal.connect(lambda data: self.reading_slider.setValue(data[sensor.meta_data.sensor_type]))
         self.reading_slider.setDisabled(True)
         self.reading_slider.setValue(0)
         

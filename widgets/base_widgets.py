@@ -16,6 +16,7 @@ import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+
 DAYS_OF_THE_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 MONTHS_OF_THE_YEAR = {
     "January": 31,
@@ -75,87 +76,6 @@ def create_scrollable_widget(parent_layout: QLayout | None, layout_type: type[QH
         parent_layout.addWidget(scroll_widget)
     
     return scroll_widget, layout
-
-
-
-class TabViewWidget(QWidget):
-    def __init__(self, bar_orientation: Literal["vertical", "horizontal"] = "horizontal"):
-        super().__init__()
-        self.bar_orientation = bar_orientation
-        
-        assert self.bar_orientation in ("vertical", "horizontal"), f"Invalid orientation: {self.bar_orientation}"
-        
-        main_layout = QVBoxLayout()
-        self.setLayout(main_layout)
-        
-        tab_layout_type = QHBoxLayout if self.bar_orientation == "horizontal" else QVBoxLayout
-        main_layout_type = QHBoxLayout if self.bar_orientation == "vertical" else QVBoxLayout
-        
-        container = QWidget()
-        layout = main_layout_type()
-        container.setLayout(layout)
-        
-        self.tab_buttons: list[QPushButton] = []
-        
-        tab_widget = QWidget()
-        tab_widget.setContentsMargins(0, 0, 0, 0)
-        
-        self.tab_layout = tab_layout_type()
-        tab_widget.setLayout(self.tab_layout)
-        
-        self.stack = QStackedWidget()
-        
-        # for tab_name, widget in tab_widget_mapping.items():
-        #     self.add(tab_name, widget)
-            # tab_button = QPushButton(tab_name)
-            # tab_button.setCheckable(True)
-            # tab_button.clicked.connect(self._make_tab_clicked_func(index))
-            # tab_button.setProperty("class", "HorizontalTab" if self.bar_orientation == "horizontal" else "VerticalTab")
-            # tab_button.setContentsMargins(0, 0, 0, 0)
-            
-            # self.tab_layout.addWidget(tab_button)
-            # self.stack.addWidget(widget)
-            # widget.setContentsMargins(0, 0, 0, 0)
-            
-            # self.tab_buttons.append(tab_button)
-        
-        if self.bar_orientation == "vertical":
-            self.tab_layout.addStretch()
-        
-        self.setContentsMargins(0, 0, 0, 0)
-        tab_widget.setContentsMargins(0, 0, 0, 0)
-        self.stack.setContentsMargins(0, 0, 0, 0)
-        
-        layout.addWidget(tab_widget)
-        layout.addWidget(self.stack)
-        
-        self.tab_buttons[0].click()
-        
-        main_layout.addWidget(container)
-    
-    def _make_tab_clicked_func(self, index: int):
-        def func():
-            self.stack.setCurrentIndex(index)
-            
-            for i, button in enumerate(self.tab_buttons):
-                if i != index:
-                    button.setChecked(False)
-        
-        return func
-    
-    def add(self, tab_name: str, widget: QWidget):
-        tab_button = QPushButton(tab_name)
-        tab_button.setCheckable(True)
-        tab_button.clicked.connect(self._make_tab_clicked_func(len(self.tab_buttons)))
-        tab_button.setProperty("class", "HorizontalTab" if self.bar_orientation == "horizontal" else "VerticalTab")
-        tab_button.setContentsMargins(0, 0, 0, 0)
-        
-        self.tab_layout.addWidget(tab_button)
-        self.stack.addWidget(widget)
-        widget.setContentsMargins(0, 0, 0, 0)
-        
-        self.tab_buttons.append(tab_button)
-
 
 
 class OptionsMenu(QFrame):

@@ -12,164 +12,9 @@ from PyQt6.QtWidgets import (
 
 import json
 import os
-from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
-# dark_theme = {
-#   "palette": {
-#     "Window": "#383838",
-#     "WindowText": "#ffffff",
-#     "Base": "#2d2d30",
-#     "AlternateBase": "#3e3e42",
-#     "ToolTipBase": "#f5f5f5",
-#     "ToolTipText": "#111111",
-#     "Text": "#ffffff",
-#     "Button": "#3a3a3d",
-#     "ButtonText": "#ffffff",
-#     "BrightText": "#ff0000",
-#     "Highlight": "#007acc",
-#     "HighlightedText": "#ffffff",
-#     "Link": "#3794ff",
-#     "Light": "#2d2d30",
-#     "Midlight": "#3e3e42",
-#     "Dark": "#121212",
-#     "Mid": "#2a2a2e",
-#     "Shadow": "#000000"
-#   },
-#   "stylesheet": """
-#     QWidget {
-#       font-family: 'Segoe UI', sans-serif;
-#       font-size: 14px;
-#       background-color: #1e1e1e;
-#       color: #ffffff;
-#     }
-
-#     QPushButton {
-#       background-color: #0e639c;
-#       color: white;
-#       padding: 6px 12px;
-#       border-radius: 4px;
-#     }
-
-#     QPushButton:hover {
-#       background-color: #1177bb;
-#     }
-
-#     QPushButton:pressed {
-#       background-color: #0b5081;
-#     }
-
-#     QLineEdit, QTextEdit, QPlainTextEdit {
-#       background-color: #2d2d30;
-#       color: #ffffff;
-#       border: 1px solid #555;
-#       border-radius: 4px;
-#       padding: 4px;
-#     }
-
-#     QScrollBar:vertical {
-#       background: #2d2d30;
-#       width: 10px;
-#     }
-
-#     QScrollBar::handle:vertical {
-#       background: #555;
-#       min-height: 20px;
-#       border-radius: 4px;
-#     }
-
-#     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-#       height: 0px;
-#     }
-
-#     QToolTip {
-#       background-color: #ffffff;
-#       color: #000000;
-#       border: 1px solid #aaaaaa;
-#     }
-#   """
-# }
-
-# light_theme = {
-#   "palette": {
-#     "Window": "#f5f5f5",
-#     "WindowText": "#000000",
-#     "Base": "#ffffff",
-#     "AlternateBase": "#eaeaea",
-#     "ToolTipBase": "#333333",
-#     "ToolTipText": "#ffffff",
-#     "Text": "#000000",
-#     "Button": "#e0e0e0",
-#     "ButtonText": "#000000",
-#     "BrightText": "#ff0000",
-#     "Highlight": "#0078d4",
-#     "HighlightedText": "#ffffff",
-#     "Link": "#0066cc",
-#     "Light": "#ffffff",
-#     "Midlight": "#eeeeee",
-#     "Dark": "#cccccc",
-#     "Mid": "#bbbbbb",
-#     "Shadow": "#aaaaaa"
-#   },
-#   "stylesheet": """
-#     QWidget {
-#       font-family: 'Segoe UI', sans-serif;
-#       font-size: 14px;
-#       background-color: #f5f5f5;
-#       color: #000000;
-#     }
-
-#     QPushButton {
-#       background-color: #0078d4;
-#       color: white;
-#       padding: 6px 12px;
-#       border-radius: 4px;
-#     }
-
-#     QPushButton:hover {
-#       background-color: #2899f5;
-#     }
-
-#     QPushButton:pressed {
-#       background-color: #005a9e;
-#     }
-
-#     QLineEdit, QTextEdit, QPlainTextEdit {
-#       background-color: #ffffff;
-#       color: #000000;
-#       border: 1px solid #ccc;
-#       border-radius: 4px;
-#       padding: 4px;
-#     }
-
-#     QScrollBar:vertical {
-#       background: #f5f5f5;
-#       width: 10px;
-#     }
-
-#     QScrollBar::handle:vertical {
-#       background: #999;
-#       min-height: 20px;
-#       border-radius: 4px;
-#     }
-
-#     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-#       height: 0px;
-#     }
-
-#     QToolTip {
-#       background-color: #333333;
-#       color: #ffffff;
-#       border: 1px solid #444444;
-#     }
-#   """
-# }
-
-# with open("dark.json", 'w') as f1:
-#     json.dump(dark_theme, f1, indent=2)
-# with open("light.json", 'w') as f2:
-#     json.dump(light_theme, f2, indent=2)
 
 stylesheet = '''
   QWidget {{
@@ -324,6 +169,14 @@ stylesheet = '''
       background-color: {hover3};
   }}
   
+  .labeled-widget {{
+    border: 1px solid {hover3};
+  }}
+  
+  .labeled-title {{
+		color: {hover3};
+  }}
+  
   .options-button {{
     font-size: 25px;
   }}
@@ -451,5 +304,5 @@ class ThemeManager:
         return list(self.themes.keys())
 
 THEME_MANAGER = ThemeManager()
-THEME_MANAGER.load_theme_from_file("themes.json")
+THEME_MANAGER.load_theme_from_file("theme/themes.json")
 

@@ -3,16 +3,6 @@ from os import PathLike
 from models.data_models import *
 
 @dataclass
-class AttendanceEntry:
-    time: Time
-    day: str
-    date: int
-    month: str
-    year: int
-    
-    staff: "Teacher" | "Prefect" | None = None
-
-@dataclass
 class Class:
     id: str
     
@@ -37,7 +27,7 @@ class Teacher:
     department: Department
     subjects: list[Subject]
     img_path: str | PathLike
-    attendance: dict[str, AttendanceEntry]
+    attendance: dict[str, "AttendanceEntry"]
 
 @dataclass
 class Prefect:
@@ -49,7 +39,18 @@ class Prefect:
     cls: Class
     img_path: str | PathLike
     duties: dict[str, list[str]]
-    attendance: dict[str, AttendanceEntry]
+    attendance: dict[str, "AttendanceEntry"]
+
+
+@dataclass
+class AttendanceEntry:
+    time: Time
+    day: str
+    date: int
+    month: str
+    year: int
+    
+    staff: Teacher | Prefect | None = None
 
 
 @dataclass

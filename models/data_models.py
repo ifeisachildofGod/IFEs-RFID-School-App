@@ -4,9 +4,9 @@ from typing import Callable
 
 @dataclass
 class Time:
-    sec: float
-    min: int
     hour: int
+    min: int
+    sec: float
 
 @dataclass
 class BT_Device:
@@ -18,7 +18,6 @@ class BT_Device:
 @dataclass
 class LiveData:
     data_signal: pyqtBoundSignal
-    data_func: Callable
 
 @dataclass
 class CharacterName:

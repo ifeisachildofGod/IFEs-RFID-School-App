@@ -13,11 +13,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QPoint
 from matplotlib.figure import Figure
-from models.collection_data_models import *
+from widgets.base_widgets import *
+from widgets.extra_widgets import *
 from models.data_models import *
 from models.object_models import *
-from base_widgets import *
-from extra_widgets import *
+from models.collection_data_models import *
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage, QPixmap
 

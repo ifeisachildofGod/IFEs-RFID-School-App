@@ -18,7 +18,7 @@ from matplotlib.figure import Figure
 from matplotlib.cbook import flatten
 from matplotlib.colors import get_named_colors_mapping
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from base_widgets import *
+from widgets.base_widgets import *
 from models.data_models import *
 from models.object_models import *
 from models.collection_data_models import *
@@ -63,13 +63,6 @@ class BaseExtraWidget(QWidget):
 class StaffDataWidget(BaseExtraWidget):
     def __init__(self, data: AppData, parent_widget: QStackedWidget):
         super().__init__(parent_widget)
-        layout = QVBoxLayout(self)
-        
-        self.container = QWidget()
-        self.main_layout = QVBoxLayout()
-        self.container.setLayout(self.main_layout)
-        
-        layout.addWidget(self.container)
         
         self.data = data
         

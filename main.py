@@ -11,13 +11,13 @@ from PyQt6.QtWidgets import (
     QProgressBar, QCheckBox, QMainWindow,
     QStackedWidget, QMessageBox, QFileDialog, QToolBar,
 )
-from base_widgets import *
-from app_sections import *
+from widgets.base_widgets import *
+from widgets.section_widgets import *
 from models.data_models import *
 from models.object_models import *
 from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage
 from PyQt6.QtCore import Qt, QMimeData, QThread, QTimer
-from theme import ThemeManager, THEME_MANAGER
+from theme.theme import ThemeManager, THEME_MANAGER
 
 
 addr = "00:19:08:36:3F:5C"
@@ -26,6 +26,8 @@ from PyQt6.QtCore import Qt
 
 
 class Window(QMainWindow):
+    bt_signal = pyqtSignal(dict)
+    
     def __init__(self) -> None:
         super().__init__()
         
@@ -55,8 +57,20 @@ class Window(QMainWindow):
         safety_layout.addWidget(gas_widget, alignment=Qt.AlignmentFlag.AlignCenter)
         safety_layout.addWidget(flame_widget, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        data = AppData()
-        bt_data = LiveData(pyqtSignal(dict))
+        data = AppData(
+            Time(7, 00, 00),
+            Time(8, 00, 00),
+            
+            (AttendanceEntry(Time(7, 00, 00), "Monday", 1, "January", 2025), AttendanceEntry(Time(7, 00, 00), "Monday", 1, "January", 2025)),
+            (AttendanceEntry(Time(7, 00, 00), "Monday", 1, "January", 2025), AttendanceEntry(Time(7, 00, 00), "Monday", 1, "January", 2025)),
+            
+            [],
+            
+            {},
+            {}
+        )
+        
+        bt_data = LiveData(self.bt_signal)
         
         # Create stacked widget for content
         
@@ -66,11 +80,15 @@ class Window(QMainWindow):
         staff_widget.add("Punctuality Graph", PunctualityGraphWidget(data))
         staff_widget.add("Prefect Editor", PrefectEditorWidget(data, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
         staff_widget.add("Teacher Editor", TeacherEditorWidget(data, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
+        staff_widget.stack.addWidget(CardScanScreenWidget(bt_data, staff_widget.stack))
+        staff_widget.stack.addWidget(StaffDataWidget(bt_data, staff_widget.stack))
         
         main_screen_widget = TabViewWidget()
         main_screen_widget.add("Staff", staff_widget)
-        main_screen_widget.add("Security", UltrasonicSonarWidget(Sensor(SensorMeta("Ultrasonic", "Floating birf", "8.9.1", "Arduino inc"), "img.png")))
+        main_screen_widget.add("Security", UltrasonicSonarWidget(Sensor(SensorMeta("Ultrasonic", "Floating bird", "8.9.1", "Arduino inc"), "img.png")))
         main_screen_widget.add("Safety", safety_widget)
+        
+        main_layout.addWidget(main_screen_widget)
         
         self.setCentralWidget(container)
     
