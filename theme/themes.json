@@ -15,7 +15,14 @@
     "tooltip_bg": "#fefefe",
     "tooltip_text": "#111",
     "error": "#d32f2f",
-    "disabled": "#aaa"
+    "disabled": "#aaaaaa",
+    
+    "teacher": "#08004d",
+    "prefect": "#fffb00",
+    "hover2": "#c1c1c4",
+    "hover3": "#8f8f96ff",
+    "title_text_teacher": "#808080",
+    "title_text_prefect": "#e5e5e5"
   },
   
   "dark": {
@@ -24,12 +31,6 @@
     "text": "#f0f0f0",
     "primary": "#0e639c",
     "primary_hover": "#1177bb",
-    "teacher": "#08004d",
-    "prefect": "#fffb00",
-    "hover2": "#353536",
-    "hover3": "#47474b",
-    "title_text_teacher": "#808080",
-    "title_text_prefect": "#5e5e5e",
     "primary_pressed": "#0b5081",
     "secondary": "#3a3a3d",
     "border": "#444",
@@ -40,6 +41,13 @@
     "tooltip_bg": "#333",
     "tooltip_text": "#eee",
     "error": "#ff4c4c",
-    "disabled": "#777"
+    "disabled": "#777777",
+
+    "teacher": "#08004d",
+    "prefect": "#fffb00",
+    "hover2": "#353536",
+    "hover3": "#47474b",
+    "title_text_teacher": "#808080",
+    "title_text_prefect": "#5e5e5e"
   }
 }
