@@ -229,14 +229,14 @@ class AttendanceBarWidget(BaseListWidget):
         
         for staff_attendance_data in data.attendance_data:
             if isinstance(staff_attendance_data.staff, Prefect):
-                percentage_attendance = self.get_percentage_attendance(staff_attendance_data.attendance, list(staff_attendance_data.staff.duties.keys()), prefect_interval)
+                percentage_attendance = self.get_percentage_attendance(staff_attendance_data.staff.attendance, list(staff_attendance_data.staff.duties.keys()), prefect_interval)
                 
                 prefect_names.append(staff_attendance_data.staff.name)
                 prefects_attendance_data.append(percentage_attendance)
             elif isinstance(staff_attendance_data.staff, Teacher):
                 days_tba = list(set(flatten([[day for day, _ in s.periods] for s in staff_attendance_data.staff.subjects])))
                 
-                percentage_attendance = self.get_percentage_attendance(staff_attendance_data.attendance, days_tba, teacher_interval)
+                percentage_attendance = self.get_percentage_attendance(staff_attendance_data.staff.attendance, days_tba, teacher_interval)
                 
                 if staff_attendance_data.staff.department.id in teacher_data:
                     teacher_data[staff_attendance_data.staff.department.id][1][0].append(staff_attendance_data.staff.name)
@@ -244,20 +244,31 @@ class AttendanceBarWidget(BaseListWidget):
                 else:
                     teacher_data[staff_attendance_data.staff.department.id] = (staff_attendance_data.staff.department.name, [(staff_attendance_data.staff.name), percentage_attendance])
         
-        prefect_info_widget = BarWidget("Cummulative Prefect Attendance", "Prefect Names", "Yearly Attendance (%)")
-        prefect_info_widget.add_data("Prefects", THEME_MANAGER.get_current_palette()["prefect"], (prefect_names, prefects_attendance_data))
+        if prefects_attendance_data:
+            prefect_info_widget = BarWidget("Cummulative Prefect Attendance", "Prefect Names", "Yearly Attendance (%)")
+            prefect_info_widget.add_data("Prefects", THEME_MANAGER.get_current_palette()["prefect"], (prefect_names, prefects_attendance_data))
+            
+            self.main_layout.addWidget(LabeledField("Prefect Attendance", prefect_info_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+        else:
+            label = QLabel("No Prefect Attendance Data")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.main_layout.addWidget(LabeledField("Prefect Attendance", label, height_size_policy=QSizePolicy.Policy.Maximum))
         
         dtd_widget, dtd_layout = create_widget(None, QVBoxLayout)
         # dtd_widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         
-        for index, (_, (name, data)) in enumerate(teacher_data.items()):
-            widget = BarWidget(f"Cummulative {name} Attendance", f"{name} Department Teachers", "Yearly Attendance (%)")
-            widget.add_data(name, list(get_named_colors_mapping().values())[index], data)
+        if teacher_data:
+            for index, (_, (name, data)) in enumerate(teacher_data.items()):
+                widget = BarWidget(f"Cummulative {name} Attendance", f"{name} Department Teachers", "Yearly Attendance (%)")
+                widget.add_data(name, list(get_named_colors_mapping().values())[index], data)
+                
+                dtd_layout.addWidget(widget)
             
-            dtd_layout.addWidget(widget)
-        
-        self.main_layout.addWidget(prefect_info_widget)
-        self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+            self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+        else:
+            label = QLabel("No Teacher Attendance Data")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.main_layout.addWidget(LabeledField("Teacher Attendance", label, height_size_policy=QSizePolicy.Policy.Maximum), alignment=Qt.AlignmentFlag.AlignTop)
     
     def get_percentage_attendance(self, attendance: dict[str, AttendanceEntry], valid_attendance_days: list[str], interval: tuple[int, int]):
         remainder_days = sum([day in valid_attendance_days for day in DAYS_OF_THE_WEEK[:interval[1] + 1]])
@@ -289,31 +300,35 @@ class PunctualityGraphWidget(BaseListWidget):
         #     "prefect_id 4": ("Jesse", [0, 0, 0, 1, 1, 2, 3, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
         #     "prefect_id 5": ("Tumbum", [0, 0, 0, 3, 1, 2, 0, 0, -1, -3, 0, -2, 0, 0, 1, 1, 1, 2, 2, 3, 3, 3]),
         # }
-        prefect_info_widget = GraphWidget("Prefects Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
         
-        for index, (_, (name, prefect_data)) in enumerate(prefects_data.items()):
-            prefect_info_widget.plot([i + 1 for i in range(len(prefect_data))], prefect_data, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
-        
-        # teacher_data = {
-        #     "department_id 1": ("Humanities", sub_data),
-        #     "department_id 2": ("Technology", sub_data),
-        #     "department_id 3": ("Mathematics", sub_data),
-        #     "department_id 4": ("English", sub_data),
-        #     "department_id 5": ("Physics", sub_data),
-        # }
+        if prefects_data:
+            prefect_info_widget = GraphWidget("Prefects Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
+            
+            for index, (_, (name, prefect_data)) in enumerate(prefects_data.items()):
+                prefect_info_widget.plot([i + 1 for i in range(len(prefect_data))], prefect_data, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
+            
+            self.main_layout.addWidget(LabeledField("Prefect Punctuality", prefect_info_widget))
+        else:
+            label = QLabel("No Prefect Punctuality Data")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.main_layout.addWidget(LabeledField("Prefect Punctuality", label, height_size_policy=QSizePolicy.Policy.Maximum))
         
         dtd_widget, dtd_layout = create_widget(None, QVBoxLayout)
         
-        for _, (dep_name, dep_data) in teacher_data.items():
-            dep_info_widget = GraphWidget(f"{dep_name} Department Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
+        if teacher_data:
+            for _, (dep_name, dep_data) in teacher_data.items():
+                dep_info_widget = GraphWidget(f"{dep_name} Department Punctuality Graph", "Time Interval (Weeks)", "Punctuality (Hours)")
+                
+                for index, (_, (name, info)) in enumerate(dep_data.items()):
+                    dep_info_widget.plot([i + 1 for i in range(len(info))], info, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
+                
+                dtd_layout.addWidget(dep_info_widget)
             
-            for index, (_, (name, info)) in enumerate(dep_data.items()):
-                dep_info_widget.plot([i + 1 for i in range(len(info))], info, label=name, marker='o', color=list(get_named_colors_mapping().values())[index])
-            
-            dtd_layout.addWidget(dep_info_widget)
-        
-        self.main_layout.addWidget(prefect_info_widget)
-        self.main_layout.addWidget(LabeledField("Departmental Attendance", dtd_widget, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+            self.main_layout.addWidget(LabeledField("Departmental Punctuality", dtd_widget if teacher_data else QLabel("No Teacher Punctuality Data"), QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum))
+        else:
+            label = QLabel("No Teacher Punctuality Data")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.main_layout.addWidget(LabeledField("Departmental Punctuality", label, height_size_policy=QSizePolicy.Policy.Maximum), alignment=Qt.AlignmentFlag.AlignTop)
     
     def get_punctuality_data(self, staff: Teacher | Prefect):
         prefects_plot_data: list[float] = []
@@ -340,6 +355,7 @@ class PunctualityGraphWidget(BaseListWidget):
             prefects_plot_data.append(weekly_punctuality)
         
         return staff.name, prefects_plot_data
+
 
 
 class _SensorMetaInfoWidget(QWidget):

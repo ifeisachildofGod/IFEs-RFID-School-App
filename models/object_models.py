@@ -22,7 +22,7 @@ class Subject:
 @dataclass
 class Teacher:
     id: str
-    IUD: str
+    IUD: str | None
     
     name: CharacterName
     department: Department
@@ -33,7 +33,7 @@ class Teacher:
 @dataclass
 class Prefect:
     id: str
-    IUD: str
+    IUD: str | None
     
     name: CharacterName
     post_name: str

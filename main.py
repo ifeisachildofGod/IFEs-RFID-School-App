@@ -66,14 +66,13 @@ class Window(QMainWindow):
             
             [],
             
-            {},
-            {}
+            {"t_id1": Teacher("t_id1", None, CharacterName("Emily", "Mbeke", "Chinweotito", "Mbeke"), Department("d_id1", "Humanities"), [Subject("s_id1", "Civic Education", Class("c_id1", "A", "SS3", "SS3 A"), [("Friday", 2), ("Friday", 3)])], "img.png", {})},
+            {"p_id1": Prefect("p_id1", None, CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma"), "Parade Commander", Class("c_id1", "A", "SS3", "SS3 A"), "img.png", {"Friday": ["Morning", "Parade"]}, {})}
         )
         
         bt_data = LiveData(self.bt_signal)
         
         # Create stacked widget for content
-        
         staff_widget = TabViewWidget("vertical")
         staff_widget.add("Attendance", AttendanceWidget(data, bt_data))
         staff_widget.add("Attendance Graph", AttendanceBarWidget(data))
@@ -81,7 +80,7 @@ class Window(QMainWindow):
         staff_widget.add("Prefect Editor", PrefectEditorWidget(data, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
         staff_widget.add("Teacher Editor", TeacherEditorWidget(data, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
         staff_widget.stack.addWidget(CardScanScreenWidget(bt_data, staff_widget.stack))
-        staff_widget.stack.addWidget(StaffDataWidget(bt_data, staff_widget.stack))
+        staff_widget.stack.addWidget(StaffDataWidget(data, staff_widget.stack))
         
         main_screen_widget = TabViewWidget()
         main_screen_widget.add("Staff", staff_widget)

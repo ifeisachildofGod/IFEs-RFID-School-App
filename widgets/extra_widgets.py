@@ -28,12 +28,15 @@ class BaseExtraWidget(QWidget):
         
         self.parent_widget = parent_widget
         
+        _, upper_layout = create_widget(self.main_layout, QHBoxLayout)
+        
         cancel_button = QPushButton("×")
         cancel_button.setFixedSize(30, 30)
         cancel_button.setStyleSheet("font-size: 25px; border-radius: 15px; background-color: #00000000;")
         cancel_button.clicked.connect(self.finished)
         
-        self.main_layout.addWidget(cancel_button, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        upper_layout.addStretch()
+        upper_layout.addWidget(cancel_button, Qt.AlignmentFlag.AlignRight)
         
         self.staff: Teacher | Prefect | None = None
         self.staff_index: int | None = None
@@ -61,11 +64,13 @@ class StaffDataWidget(BaseExtraWidget):
     def set_self(self, staff, staff_index):
         super().set_self(staff, staff_index)
         
-        self.main_layout.removeWidget(self.attendance_widget)
-        self.attendance_widget.deleteLater()
+        if self.attendance_widget is not None:
+            self.main_layout.removeWidget(self.attendance_widget)
+            self.attendance_widget.deleteLater()
         
-        self.main_layout.removeWidget(self.punctuality_widget)
-        self.punctuality_widget.deleteLater()
+        if self.punctuality_widget is not None:
+            self.main_layout.removeWidget(self.punctuality_widget)
+            self.punctuality_widget.deleteLater()
         
         if isinstance(staff, Teacher):
             bar_title = f"{staff.name} Monthly Cummulative Attendance Chart"
@@ -84,48 +89,50 @@ class StaffDataWidget(BaseExtraWidget):
         self.attendance_widget = BarWidget(bar_title, "Time (Months)", "Attendace (%)")
         self.attendance_widget.bar_canvas.axes.set_ylim(0, 100)
         
-        monthly_attendance_data = {}
-        for attendance in staff.attendance.values():
-            monthly_attendance_data[f"{attendance.month} {attendance.year}"] = monthly_attendance_data.get(f"{attendance.month} {attendance.year}", 0) + 1
-        
-        for date, monthly_attendance in monthly_attendance_data.items():
-            month_end = AttendanceEntry(**timeline_dates[1])
-            month_end.date = MONTHS_OF_THE_YEAR[timeline_dates[0].day]
-            month_end.year = timeline_dates[0].year
-            month_end.day = DAYS_OF_THE_WEEK[DAYS_OF_THE_WEEK.index(timeline_dates[0].day) + ((month_end.date - timeline_dates[0].date) % 7)]
-            start_week_amt, rem_days = get_attendance_time_interval(timeline_dates[0], month_end)
-            monthly_dta = (start_week_amt * len(week_days)) + len([d for d in week_days if d in rem_days])
+        if staff.attendance:
+            monthly_attendance_data = {}
+            for attendance in staff.attendance.values():
+                monthly_attendance_data[f"{attendance.month} {attendance.year}"] = monthly_attendance_data.get(f"{attendance.month} {attendance.year}", 0) + 1
             
-            months.append(date)
-            percentile_values.append(monthly_attendance * 100 / monthly_dta)
-        
-        self.attendance_widget.add_data(f"{staff.name} Attendance Data", "red", (months, percentile_values))
+            for date, monthly_attendance in monthly_attendance_data.items():
+                month_end = AttendanceEntry(**timeline_dates[1])
+                month_end.date = MONTHS_OF_THE_YEAR[timeline_dates[0].day]
+                month_end.year = timeline_dates[0].year
+                month_end.day = DAYS_OF_THE_WEEK[DAYS_OF_THE_WEEK.index(timeline_dates[0].day) + ((month_end.date - timeline_dates[0].date) % 7)]
+                start_week_amt, rem_days = get_attendance_time_interval(timeline_dates[0], month_end)
+                monthly_dta = (start_week_amt * len(week_days)) + len([d for d in week_days if d in rem_days])
+                
+                months.append(date)
+                percentile_values.append(monthly_attendance * 100 / monthly_dta)
+            
+            self.attendance_widget.add_data(f"{staff.name} Attendance Data", "red", (months, percentile_values))
         
         self.main_layout.addWidget(self.attendance_widget)
         
         self.punctuality_widget = GraphWidget(graph_title, "Time", "Punctuality (Minutes)")
         
-        prev_date = f"{list(staff.attendance.values())[0].month} {list(staff.attendance.values())[0].year}"
-        
-        date_months_mapping: dict[str, list[tuple[int, Time]]] = {}
-        for _, attendance in staff.attendance.items():
-            date = f"{attendance.month} {attendance.year}"
+        if staff.attendance:
+            prev_date = f"{list(staff.attendance.values())[0].month} {list(staff.attendance.values())[0].year}"
             
-            if date != prev_date:
-                date_months_mapping[date] = [(attendance.date, attendance.time)]
-            else:
-                date_months_mapping[date].append((attendance.date, attendance.time))
+            date_months_mapping: dict[str, list[tuple[int, Time]]] = {}
+            for _, attendance in staff.attendance.items():
+                date = f"{attendance.month} {attendance.year}"
+                
+                if date != prev_date:
+                    date_months_mapping[date] = [(attendance.date, attendance.time)]
+                else:
+                    date_months_mapping[date].append((attendance.date, attendance.time))
+                
+                prev_date = date
             
-            prev_date = date
-        
-        plot_data: list[tuple[str, list[float]]] = []
-        for date, month_time in date_months_mapping.items():
-            x_data = [date for date, _ in month_time]
-            months_data = [(((self.data.prefect_cit.hour - t.hour) * 60) + (self.data.prefect_cit.min - t.min) + ((self.data.prefect_cit.hour - t.hour) / 60)) for _, t in month_time]
-            plot_data.append((date, x_data, months_data))
-        
-        for index, (date, x, y) in enumerate(plot_data):
-            self.punctuality_widget.plot(x, y, label=date, marker='o', color=list(get_named_colors_mapping().values())[index])
+            plot_data: list[tuple[str, list[float]]] = []
+            for date, month_time in date_months_mapping.items():
+                x_data = [date for date, _ in month_time]
+                months_data = [(((self.data.prefect_cit.hour - t.hour) * 60) + (self.data.prefect_cit.min - t.min) + ((self.data.prefect_cit.hour - t.hour) / 60)) for _, t in month_time]
+                plot_data.append((date, x_data, months_data))
+            
+            for index, (date, x, y) in enumerate(plot_data):
+                self.punctuality_widget.plot(x, y, label=date, marker='o', color=list(get_named_colors_mapping().values())[index])
         
         self.main_layout.addWidget(self.punctuality_widget)
 
@@ -135,7 +142,7 @@ class CardScanScreenWidget(BaseExtraWidget):
         
         self.setStyleSheet("""
             QWidget {
-                background-color: grey;
+                background-color: darkgrey;
             }
             QLabel {
                 color: white;
@@ -143,9 +150,13 @@ class CardScanScreenWidget(BaseExtraWidget):
         """)
         
         self.main_layout.addWidget(Image("img.png"), Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addWidget(Image("img.png"), Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addWidget(QLabel("Please scan RFID card"), Qt.AlignmentFlag.AlignCenter)
+        
+        info = QLabel("Please scan RFID card")
+        info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addWidget(info, Qt.AlignmentFlag.AlignCenter)
+        
         self.info_label = QLabel()
+        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.info_label, Qt.AlignmentFlag.AlignCenter)
         
         rfid_live_data.data_signal.connect(self.scanned)

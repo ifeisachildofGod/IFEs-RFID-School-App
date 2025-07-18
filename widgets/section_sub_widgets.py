@@ -62,7 +62,7 @@ class BaseEditorWidget(QWidget):
         
         _, self.sub_info_layout = create_widget(self.main_layout, QHBoxLayout)
         
-        iud_label = QLabel(self.base.IUD)
+        iud_label = QLabel(self.base.IUD if self.base.IUD is not None else "No set IUD")
         iud_label.setStyleSheet("font-weight: bold;")
         
         self.sub_info_layout.addWidget(LabeledField("IUD", iud_label), alignment=Qt.AlignmentFlag.AlignLeft)
