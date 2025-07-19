@@ -189,7 +189,7 @@ class CharacterNameWidget(QWidget):
         layout_2_1_2.addWidget(name_4)
         layout_2_1_2.addWidget(name_5, alignment=Qt.AlignmentFlag.AlignRight)
         
-        self.main_layout.addWidget(LabeledField("Names", widget_2_1))
+        self.main_layout.addWidget(LabeledField("Names", widget_2_1, height_size_policy=QSizePolicy.Policy.Maximum))
 
 
 

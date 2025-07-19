@@ -1,4 +1,5 @@
 
+from typing import Literal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton,
     QLabel, QStackedWidget
@@ -15,16 +16,16 @@ from models.collection_data_models import *
 
 
 class BaseExtraWidget(QWidget):
-    def __init__(self, parent_widget: QStackedWidget):
+    def __init__(self, parent_widget: QStackedWidget, widget_type: Literal["scrollable", "static"]):
         super().__init__()
         
         layout = QVBoxLayout(self)
         
-        self.container = QWidget()
-        self.main_layout = QVBoxLayout()
-        self.container.setLayout(self.main_layout)
+        # self.container = QWidget()
+        # self.main_layout = QVBoxLayout()
+        # self.container.setLayout(self.main_layout)
         
-        layout.addWidget(self.container)
+        self.container, self.main_layout = create_scrollable_widget(layout, QVBoxLayout) if widget_type == "scrollable" else (create_widget(layout, QVBoxLayout) if widget_type == "static" else None)
         
         self.parent_widget = parent_widget
         
@@ -32,7 +33,7 @@ class BaseExtraWidget(QWidget):
         
         cancel_button = QPushButton("×")
         cancel_button.setFixedSize(30, 30)
-        cancel_button.setStyleSheet("font-size: 25px; border-radius: 15px; background-color: #00000000;")
+        cancel_button.setStyleSheet("font-size: 25px; border-radius: 15px;")
         cancel_button.clicked.connect(self.finished)
         
         upper_layout.addStretch()
@@ -54,7 +55,7 @@ class BaseExtraWidget(QWidget):
 
 class StaffDataWidget(BaseExtraWidget):
     def __init__(self, data: AppData, parent_widget: QStackedWidget):
-        super().__init__(parent_widget)
+        super().__init__(parent_widget, "scrollable")
         
         self.data = data
         
@@ -73,13 +74,13 @@ class StaffDataWidget(BaseExtraWidget):
             self.punctuality_widget.deleteLater()
         
         if isinstance(staff, Teacher):
-            bar_title = f"{staff.name} Monthly Cummulative Attendance Chart"
-            graph_title = f"{staff.name} Monthly Cummulative Punctuality Graph"
+            bar_title = f"{staff.name.sur} {staff.name.first}'s Monthly Cummulative Attendance Chart"
+            graph_title = f"{staff.name.sur} {staff.name.first}'s Monthly Cummulative Punctuality Graph"
             week_days = list(set(flatten([[day for day, _ in s.periods] for s in staff.subjects])))
             timeline_dates = self.data.teacher_timeline_dates
         elif isinstance(staff, Prefect):
-            bar_title = f"{staff.name} ({staff.post_name}) Monthly Cummulative Attendance Chart"
-            graph_title = f"{staff.name} ({staff.post_name}) Monthly Average Punctuality Graph"
+            bar_title = f"{staff.name.sur} {staff.name.first}'s ({staff.post_name}) Monthly Cummulative Attendance Chart"
+            graph_title = f"{staff.name.sur} {staff.name.first}'s ({staff.post_name}) Monthly Average Punctuality Graph"
             week_days = list(staff.duties.keys())
             timeline_dates = self.data.prefect_timeline_dates
         
@@ -138,7 +139,7 @@ class StaffDataWidget(BaseExtraWidget):
 
 class CardScanScreenWidget(BaseExtraWidget):
     def __init__(self, rfid_live_data: LiveData, parent_widget: QStackedWidget):
-        super().__init__(parent_widget)
+        super().__init__(parent_widget, "static")
         
         self.setStyleSheet("""
             QWidget {
@@ -164,7 +165,7 @@ class CardScanScreenWidget(BaseExtraWidget):
     def set_self(self, staff, staff_index):
         super().set_self(staff, staff_index)
         
-        self.info_label.setText(f"To link an IUD to {self.staff.name} (ID: {self.staff.id})")
+        self.info_label.setText(f"To link an IUD to {self.staff.name.sur} {self.staff.name.first} (ID: {self.staff.id})")
     
     def scanned(self, data: dict):
         self.staff.IUD = data["IUD"]

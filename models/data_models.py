@@ -9,13 +9,6 @@ class Time:
     sec: float
 
 @dataclass
-class BT_Device:
-    name: str
-    addr: str
-    port: int = 1234
-
-
-@dataclass
 class LiveData:
     data_signal: pyqtBoundSignal
 

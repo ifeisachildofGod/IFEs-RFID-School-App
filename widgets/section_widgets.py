@@ -5,7 +5,8 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QStackedWidget, QSlider
 )
 
-from time import time
+import time
+from bt import Bluetooth
 from typing import Literal
 from PyQt6.QtCore import Qt
 from matplotlib.cbook import flatten
@@ -86,7 +87,6 @@ class TabViewWidget(QWidget):
 
 
 
-
 class BaseListWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
@@ -102,7 +102,6 @@ class BaseListWidget(QWidget):
         self.setLayout(layout)
         
         layout.addWidget(scroll_widget)
-
 
 
 class AttendanceWidget(BaseListWidget):
@@ -133,86 +132,56 @@ class AttendanceWidget(BaseListWidget):
         _, self.attendance_layout = create_widget(self.main_layout, QVBoxLayout)
         
         for attendance in self.data.attendance_data:
-            self.add_attendance_log(attendance.staff.IUD, attendance)
+            self.add_attendance_log(attendance)
         
         self.main_layout.addStretch()
         
         rfid_live_data.data_signal.connect(self.add_new_attendance_log)
     
-    def add_attendance_log(self, IUD: str, attendance_entry: AttendanceEntry):
-        staff = self.data.teachers.get(IUD, self.data.prefects[IUD])
-        
-        if isinstance(staff, Teacher):
+    def keyPressEvent(self, a0):
+        super().keyPressEvent(a0)
+        self.add_new_attendance_log({"IUD": "iud_1"})
+    
+    def add_attendance_log(self, attendance_entry: AttendanceEntry):
+        if isinstance(attendance_entry.staff, Teacher):
             widget = AttendanceTeacherWidget(attendance_entry)
-        elif isinstance(staff, Prefect):
+        elif isinstance(attendance_entry.staff, Prefect):
             widget = AttendancePrefectWidget(attendance_entry)
         else:
-            raise TypeError(f"Type: {type(staff)} is not supported")
+            raise TypeError(f"Type: {type(attendance_entry.staff)} is not supported")
         
         self.attendance_layout.addWidget(widget)
     
     def add_new_attendance_log(self, data: dict):
         IUD = data["IUD"]
         
+        staff = next((prefect for _, prefect in self.data.prefects.items() if prefect.IUD == IUD), None)
+        if staff is None:
+            staff = next((teacher for _, teacher in self.data.teachers.items() if teacher.IUD == IUD))
+        
         day, month, date, t, year = time.ctime().split()
         hour, min, sec = t.split(":")
         
-        self.add_attendance_log(IUD, AttendanceEntry(Time(int(hour), int(min), int(sec)), day, int(date), month, int(year)))
+        self.add_attendance_log(AttendanceEntry(Time(int(hour), int(min), int(sec)), day, int(date), month, int(year), staff))
 
 
 class PrefectEditorWidget(BaseListWidget):
-    def __init__(self, data: AppData, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+    def __init__(self, data: AppData, bluetooth: Bluetooth, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
         super().__init__()
         
         for _, prefect in data.prefects.items():
-            self.main_layout.addWidget(EditorPrefectWidget(data, prefect, parent_widget, curr_index, card_scanner_index, staff_data_index))
+            self.main_layout.addWidget(EditorPrefectWidget(data, prefect, bluetooth, parent_widget, curr_index, card_scanner_index, staff_data_index))
         
         self.main_layout.addStretch()
-    
-    # def keyPressEvent(self, a0):
-    #     p = Prefect(
-    #                 "12010232012",
-    #                 CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma E.U"),
-    #                 "Parade Commander",
-    #                 Class("212123321231212123113", "SS2", "D", "SS2 D"),
-    #                 "img.png",
-    #                 ["Morning", "Labour", "Cadet training"]
-    #             )
-        
-    #     if a0.key() == 16777220:
-    #         self.main_layout.insertWidget(len(self.main_layout.children()), EditorPrefectWidget(p), alignment=Qt.AlignmentFlag.AlignTop)
-        
-    #     return super().keyPressEvent(a0)
 
 class TeacherEditorWidget(BaseListWidget):
-    def __init__(self, data: AppData, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+    def __init__(self, data: AppData, bluetooth: Bluetooth, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
         super().__init__()
         
         for _, teacher in data.teachers.items():
-            self.main_layout.addWidget(EditorTeacherWidget(data, teacher, parent_widget, curr_index, card_scanner_index, staff_data_index))
+            self.main_layout.addWidget(EditorTeacherWidget(data, teacher, bluetooth, parent_widget, curr_index, card_scanner_index, staff_data_index))
         
         self.main_layout.addStretch()
-    
-    # def keyPressEvent(self, a0):
-    #     t = Teacher(
-    #             "13123231323",
-    #             CharacterName("Hamza", "Yunusa", "George", "Sambisa"),
-    #             Department("department_id 1", "Humanities"),
-    #             [
-    #                 Subject("23123121221212132123", "Maths", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Monday", 9)]),
-    #                 Subject("23123121221212132123", "Maths", Class("212123321231242123113", "SS2", "F", "SS2 F"), [("Tuesday", 1), ("Tuesday", 2)]),
-    #                 Subject("23123121231212132103", "English", Class("2121233212312152123113", "SS3", "E", "SS3 E"), [("Tuesday", 4), ("Tuesday", 5)]),
-    #                 Subject("23123121231212132103", "English", Class("212123323231212123113", "SS1", "B", "SS1 B"), [("Tuesday", 8), ("Tuesday", 9)]),
-    #                 Subject("23123121231212132103", "English", Class("212123321231212123113", "SS2", "D", "SS2 D"), [("Tuesday", 8), ("Wednesday", 9)]),
-    #                 Subject("23123121231212132103", "English", Class("212123321231217123113", "SS2", "E", "SS2 E"), [("Tuesday", 8), ("Tuesday", 9)]),
-    #                 ],
-    #             "img.png"
-    #         )
-        
-    #     if a0.key() == 16777220:
-    #         self.main_layout.insertWidget(len(self.main_layout.children()), EditorTeacherWidget(t), alignment=Qt.AlignmentFlag.AlignTop)
-        
-    #     return super().keyPressEvent(a0)
 
 
 class AttendanceBarWidget(BaseListWidget):
@@ -393,29 +362,29 @@ class _SensorMetaInfoWidget(QWidget):
         
         layout_2_1_2.addWidget(name_4, alignment=Qt.AlignmentFlag.AlignRight)
         
-        self.main_layout.addWidget(LabeledField("Meta Info", widget_2_1))
+        self.main_layout.addWidget(LabeledField("Meta Info", widget_2_1, QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum))
 
 class SensorWidget(QWidget):
     def __init__(self, sensor: Sensor):
         super().__init__()
+        
+        self.sensor = sensor
         
         layout = QVBoxLayout()
         self.setLayout(layout)
         
         self.container = QWidget()
         
-        self.main_layout = QHBoxLayout()
+        self.main_layout = QVBoxLayout()
         self.container.setLayout(self.main_layout)
         
-        self.labeled_container = LabeledField(sensor.meta_data.sensor_type, self.container)
+        self.labeled_container = LabeledField(self.sensor.meta_data.sensor_type, self.container)
         
         layout.addWidget(self.labeled_container)
         
-        self.sensor = sensor
+        widget_1, layout_1 = create_widget(None, QHBoxLayout)
         
-        _, layout_1 = create_widget(self.main_layout, QVBoxLayout)
-        
-        image = Image(self.sensor.img_path, parent=self.container)
+        image = Image(self.sensor.img_path, parent=self.container, width=150)
         layout_1.addWidget(image, alignment=Qt.AlignmentFlag.AlignCenter)
         # layout_1.addStretch()
         
@@ -429,20 +398,22 @@ class SensorWidget(QWidget):
         self.reading_slider.setDisabled(True)
         self.reading_slider.setValue(0)
         
+        meta_info_widget = _SensorMetaInfoWidget(self.sensor.meta_data)
+        layout_1_2.addWidget(meta_info_widget)
+        
         safety_reading_slider = QSlider(Qt.Orientation.Horizontal)
         safety_reading_slider.setValue(50)
         
         layout_1_2_1_1.addWidget(LabeledField("Reading", self.reading_slider))
         layout_1_2_1_1.addWidget(LabeledField("Safety Value", safety_reading_slider))
         
-        layout_1_2.addWidget(LabeledField("Live Data", widget_1_2_1_1, QSizePolicy.Policy.Minimum))
-        
         layout_1.addWidget(widget_1_2)
+        
+        self.main_layout.addWidget(LabeledField("Info", widget_1, height_size_policy=QSizePolicy.Policy.Maximum))
         
         _, layout_2 = create_widget(self.main_layout, QVBoxLayout)
         
-        meta_info_widget = _SensorMetaInfoWidget(self.sensor.meta_data)
-        layout_2.addWidget(meta_info_widget)
+        layout_2.addWidget(LabeledField("Live Data", widget_1_2_1_1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum))
     
     # def reading_value_changed(self):
     #     self.reading_slider.setStyleSheet("")
@@ -465,10 +436,10 @@ class UltrasonicSonarWidget(QWidget):
         
         sonar_widget = SonarWidget(30)
         
-        ultrasonic_sensor_meta_info_widget, ultrasonic_sensor_meta_info_layout = create_widget(self.main_layout, QHBoxLayout)
+        ultrasonic_sensor_meta_info_widget, ultrasonic_sensor_meta_info_layout = create_widget(self.main_layout, QVBoxLayout)
         
-        ultrasonic_sensor_meta_info_layout.addWidget(Image(sensor.img_path, ultrasonic_sensor_meta_info_widget))
-        ultrasonic_sensor_meta_info_layout.addWidget(_SensorMetaInfoWidget(SensorMeta("Ultrasonic", "Super", "0.0.0.10", "Arduino LC")))
+        ultrasonic_sensor_meta_info_layout.addWidget(Image(sensor.img_path, ultrasonic_sensor_meta_info_widget, width=150), alignment=Qt.AlignmentFlag.AlignCenter)
+        ultrasonic_sensor_meta_info_layout.addWidget(_SensorMetaInfoWidget(SensorMeta("Ultrasonic", "Super", "0.0.0.10", "Arduino LC")), alignment=Qt.AlignmentFlag.AlignCenter)
         
         self.main_layout.addWidget(sonar_widget)
         
