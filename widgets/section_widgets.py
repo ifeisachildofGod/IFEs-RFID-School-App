@@ -445,19 +445,29 @@ class UltrasonicSonarWidget(QWidget):
         layout.addWidget(activate_cb, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.labeled_field)
         
-        sonar_widget = SonarWidget(30)
-        
         ultrasonic_sensor_meta_info_widget, ultrasonic_sensor_meta_info_layout = create_widget(self.main_layout, QVBoxLayout)
         
         ultrasonic_sensor_meta_info_layout.addWidget(Image(self.sonar.img_path, ultrasonic_sensor_meta_info_widget, width=130), alignment=Qt.AlignmentFlag.AlignCenter)
         ultrasonic_sensor_meta_info_layout.addWidget(_SensorMetaInfoWidget(SensorMeta("Ultrasonic", "Super", "0.0.0.10", "Arduino LC")), alignment=Qt.AlignmentFlag.AlignCenter)
         
-        self.main_layout.addWidget(sonar_widget)
+        _, sonar_layout = create_widget(self.main_layout, QVBoxLayout)
         
-        self.sonar.bluetooth.set_data_point(("angles", "distances"), lambda angles, distances: sonar_widget.update_sonar(angles, distances))
+        safety_slider = QSlider(Qt.Orientation.Horizontal)
+        safety_slider.setValue(30)
+        
+        self.sonar_widget = SonarWidget(safety_slider.value())
+        safety_slider.valueChanged.connect(self.safety_slider_moved)
+        self.sonar.bluetooth.set_data_point(("angles", "distances"), lambda angles, distances: self.sonar_widget.update_sonar(angles, distances))
+        
+        sonar_layout.addWidget(self.sonar_widget)
+        sonar_layout.addWidget(LabeledField("Safety Distance", safety_slider, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum))
         
         activate_cb.click()
         activate_cb.click()
+    
+    def safety_slider_moved(self, value: int):
+        self.sonar_widget.safety_limit = value
+        self.sonar_widget.update_sonar(self.sonar_widget.latest_angles, self.sonar_widget.latest_distances)
     
     def toogle_activation_state(self, state):
         self.labeled_field.setDisabled(not state)

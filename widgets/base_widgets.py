@@ -270,10 +270,10 @@ class GraphWidget(QWidget):
         self.graph.plot(x, y, **kwargs)
 
 class SonarWidget(QWidget):
-    def __init__(self, sonar_safety_limit: float):
+    def __init__(self, safety_limit: float):
         super().__init__()
         
-        self.sonar_safety_limit = sonar_safety_limit
+        self.safety_limit = safety_limit
         
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         
@@ -286,11 +286,26 @@ class SonarWidget(QWidget):
         layout.addWidget(self.container)
         
         self.sonar = SonarCanvas()
+        self.draw_safety_limit()
         
         self.main_layout.addWidget(self.sonar)
+        
+        self.latest_angles = None
+        self.latest_distances = None
+    
+    def draw_safety_limit(self):
+        self.sonar.draw_circle(self.safety_limit, c="red", s=5)
     
     def update_sonar(self, angles, distances):
+        self.latest_angles = angles
+        self.latest_distances = distances
+        
         self.sonar.clear()
-        self.sonar.draw_circle(self.sonar_safety_limit, c="red", s=5)
-        self.sonar.update_sonar_data(angles, distances, c='green', s=10)
+        self.draw_safety_limit()
+        if None not in (self.latest_angles, self.latest_distances):
+            self.sonar.update_sonar_data(self.latest_angles, self.latest_distances, c='green', s=10)
+        else:
+            self.sonar.draw()
+
+
 
