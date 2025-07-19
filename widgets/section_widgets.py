@@ -141,7 +141,7 @@ class AttendanceWidget(BaseListWidget):
         
         self.main_layout.addStretch()
         
-        bluetooth.set_data_point("IUD log", self.add_new_attendance_log)
+        bluetooth.set_data_point("IUD", self.add_new_attendance_log)
     
     def add_attendance_log(self, attendance_entry: AttendanceEntry):
         if isinstance(attendance_entry.staff, Teacher):
@@ -166,8 +166,9 @@ class AttendanceWidget(BaseListWidget):
         
         entry = AttendanceEntry(Time(int(hour), int(min), int(sec)), day, int(date), month, int(year), staff)
         
-        staff.attendance.append(entry)
         self.add_attendance_log(entry)
+        
+        staff.attendance.append(entry)
         self.data.attendance_data.append(entry)
 
 
@@ -467,6 +468,7 @@ class UltrasonicSonarWidget(QWidget):
     
     def safety_slider_moved(self, value: int):
         self.sonar_widget.safety_limit = value
+        self.sonar.bluetooth.send_message(f"SAFETY:{self.sonar_widget.safety_limit}")
         self.sonar_widget.update_sonar(self.sonar_widget.latest_angles, self.sonar_widget.latest_distances)
     
     def toogle_activation_state(self, state):

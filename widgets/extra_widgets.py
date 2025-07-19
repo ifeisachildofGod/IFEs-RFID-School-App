@@ -161,7 +161,7 @@ class CardScanScreenWidget(BaseExtraWidget):
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.info_label, Qt.AlignmentFlag.AlignCenter)
         
-        bluetooth.set_data_point("IUD set", self.scanned)
+        bluetooth.set_data_point("IUD", self.scanned)
     
     def set_self(self, staff, staff_index):
         super().set_self(staff, staff_index)
