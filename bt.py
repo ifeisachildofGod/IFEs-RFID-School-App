@@ -19,23 +19,28 @@ class Bluetooth:
         self.ble_scanner = BleakScanner()
         
         self.connected = False
+        self.connection_message = ""
     
     def get_devices(self):
         return bluetooth.discover_devices(lookup_names=True) + [(bl_info.address, bl_info.name) for bl_info in asyncio.run(self.ble_scanner.discover())]
     
     def send_message(self, msg: str):
-        with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
-            bt_comm.connect((self.device.addr, self.device.port))
+        self.connection_message = ""
+        if not self.connected:
+            with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
+                bt_comm.connect((self.device.addr, self.device.port))
+                
+                self.connected = True
+                
+                bt_comm.send(msg.encode())
+                
+                msg_recv = bt_comm.recv(1024).decode()
+                if msg_recv:
+                    self.device.live_data.data_signal.emit(self._process_data(msg_recv))
             
-            self.connected = True
-            
-            bt_comm.send(msg.encode())
-            
-            msg_recv = bt_comm.recv(1024).decode()
-            if msg_recv:
-                self.device.live_data.data_signal.emit(self._process_data(msg_recv))
-        
-        self.connected = False
+            self.connected = False
+        else:
+            self.connection_message = msg
         
         return msg_recv
     
@@ -52,8 +57,8 @@ class Bluetooth:
         with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
             bt_comm.connect((self.device.addr, self.device.port))
             
-            msg_recv = bt_comm.recv(1024).decode()
             while self.connected:
+                bt_comm.send(self.connection_message.encode())
                 msg_recv = bt_comm.recv(1024).decode()
                 
                 if msg_recv:
