@@ -16,9 +16,6 @@ from widgets.base_widgets import *
 from widgets.section_widgets import *
 
 
-addr = "00:19:08:36:3F:5C"
-
-
 class Window(QMainWindow):
     bt_signal = pyqtSignal(dict)
     
