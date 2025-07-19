@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 from bt import Bluetooth
 from PyQt6.QtCore import Qt, QPoint
 
+from others import *
 from models.data_models import *
 from models.object_models import *
 from widgets.base_widgets import *
@@ -58,6 +59,7 @@ class BaseEditorWidget(QWidget):
         self.options_button.clicked.connect(self.toogle_options)
         
         self.options_menu = OptionsMenu({"Set IUD": self.set_iud, "View Punctuality Data": self.view_punctuality_data})
+        self.options_menu.setProperty("class", "option-menu")
         
         main_info_layout.addWidget(self.options_button, alignment=Qt.AlignmentFlag.AlignTop)
         
@@ -154,7 +156,7 @@ class AttendanceTeacherWidget(BaseAttendanceWidget):
         layout_1_2_1.addWidget(LabeledField("Day", QLabel(data.day)))
         layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(data.date))} of {data.month}, {data.year}")))
         
-        layout_1_2.addWidget(LabeledField("Day", widget_1_2_1), height_size_policy=QSizePolicy.Policy.Maximum)
+        layout_1_2.addWidget(LabeledField("Date Info", widget_1_2_1), height_size_policy=QSizePolicy.Policy.Maximum)
         
         widget_1_2_2, layout_1_2_2 = create_widget(None, QHBoxLayout)
         
@@ -223,7 +225,7 @@ class AttendancePrefectWidget(BaseAttendanceWidget):
         layout_1_2_1.addWidget(LabeledField("Day", QLabel(data.day)))
         layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(data.date))} of {data.month}, {data.year}")))
         
-        layout_1_2.addWidget(LabeledField("Day", widget_1_2_1, height_size_policy=QSizePolicy.Policy.Maximum))
+        layout_1_2.addWidget(LabeledField("Date Info", widget_1_2_1, height_size_policy=QSizePolicy.Policy.Maximum))
         
         widget_1_2_2, layout_1_2_2 = create_widget(None, QHBoxLayout)
         

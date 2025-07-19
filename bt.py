@@ -6,6 +6,7 @@ import asyncio
 import bluetooth
 from bleak import BleakScanner
 from dataclasses import dataclass
+from others import Thread
 
 @dataclass
 class BT_Device:
@@ -56,9 +57,12 @@ class Bluetooth:
         return msg_recv
     
     def start_connection(self):
+        if self.connected:
+            raise Exception("Bluetooth already connected")
+        
         self.connected = True
         
-        self.connection_thread = threading.Thread(target=self._connect)
+        self.connection_thread = Thread(self._connect)
         self.connection_thread.start()
     
     def stop_connection(self):

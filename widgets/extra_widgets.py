@@ -5,16 +5,16 @@ from PyQt6.QtWidgets import (
     QLabel, QStackedWidget
 )
 
+from bt import Bluetooth
 from PyQt6.QtCore import Qt
 from matplotlib.colors import get_named_colors_mapping
 
-from bt import Bluetooth
+from others import *
 from models.data_models import *
 from models.object_models import *
 from widgets.base_widgets import *
 from matplotlib.cbook import flatten
 from models.collection_data_models import *
-
 
 class BaseExtraWidget(QWidget):
     def __init__(self, parent_widget: QStackedWidget, widget_type: Literal["scrollable", "static"]):
@@ -93,7 +93,7 @@ class StaffDataWidget(BaseExtraWidget):
         
         if staff.attendance:
             monthly_attendance_data = {}
-            for attendance in staff.attendance.values():
+            for attendance in staff.attendance:
                 monthly_attendance_data[f"{attendance.month} {attendance.year}"] = monthly_attendance_data.get(f"{attendance.month} {attendance.year}", 0) + 1
             
             for date, monthly_attendance in monthly_attendance_data.items():
@@ -114,10 +114,10 @@ class StaffDataWidget(BaseExtraWidget):
         self.punctuality_widget = GraphWidget(graph_title, "Time", "Punctuality (Minutes)")
         
         if staff.attendance:
-            prev_date = f"{list(staff.attendance.values())[0].month} {list(staff.attendance.values())[0].year}"
+            prev_date = f"{staff.attendance[0].month} {staff.attendance[0].year}"
             
             date_months_mapping: dict[str, list[tuple[int, Time]]] = {}
-            for _, attendance in staff.attendance.items():
+            for attendance in staff.attendance:
                 date = f"{attendance.month} {attendance.year}"
                 
                 if date != prev_date:

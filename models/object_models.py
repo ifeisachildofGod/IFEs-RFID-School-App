@@ -29,7 +29,7 @@ class Teacher:
     department: Department
     subjects: list[Subject]
     img_path: str | PathLike
-    attendance: dict[str, "AttendanceEntry"]
+    attendance: list["AttendanceEntry"]
 
 @dataclass
 class Prefect:
@@ -41,7 +41,7 @@ class Prefect:
     cls: Class
     img_path: str | PathLike
     duties: dict[str, list[str]]
-    attendance: dict[str, "AttendanceEntry"]
+    attendance: list["AttendanceEntry"]
 
 
 @dataclass

@@ -105,10 +105,21 @@ stylesheet = '''
     font-weight: bold;
   }}
 
-  QMenu {{
+  QMenu, .option-menu {{
     background-color: {input_bg};
     color: {text};
     border: 1px solid {border};
+  }}
+  
+  .option-menu QPushButton {{
+    border-radius: 0px;
+    margin: 0px;
+    border: none;
+    background-color: {input_bg};
+  }}
+  
+  .option-menu QPushButton:hover {{
+    background-color: {highlight};
   }}
 
   QMenu::item:selected {{

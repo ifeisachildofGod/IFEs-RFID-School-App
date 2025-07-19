@@ -14,6 +14,7 @@ from matplotlib.cbook import flatten
 from theme.theme import THEME_MANAGER
 from matplotlib.colors import get_named_colors_mapping
 
+from others import *
 from models.data_models import *
 from widgets.base_widgets import *
 from widgets.section_sub_widgets import *
@@ -160,7 +161,14 @@ class AttendanceWidget(BaseListWidget):
         day, month, date, t, year = time.ctime().split()
         hour, min, sec = t.split(":")
         
-        self.add_attendance_log(AttendanceEntry(Time(int(hour), int(min), int(sec)), day, int(date), month, int(year), staff))
+        day = next((dotw for dotw in DAYS_OF_THE_WEEK if day in dotw))
+        month = next((moty for moty in MONTHS_OF_THE_YEAR if month in moty))
+        
+        entry = AttendanceEntry(Time(int(hour), int(min), int(sec)), day, int(date), month, int(year), staff)
+        
+        staff.attendance.append(entry)
+        self.add_attendance_log(entry)
+        self.data.attendance_data.append(entry)
 
 
 class PrefectEditorWidget(BaseListWidget):
@@ -237,7 +245,7 @@ class AttendanceBarWidget(BaseListWidget):
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.main_layout.addWidget(LabeledField("Teacher Attendance", label, height_size_policy=QSizePolicy.Policy.Maximum), alignment=Qt.AlignmentFlag.AlignTop)
     
-    def get_percentage_attendance(self, attendance: dict[str, AttendanceEntry], valid_attendance_days: list[str], interval: tuple[int, int]):
+    def get_percentage_attendance(self, attendance: list[AttendanceEntry], valid_attendance_days: list[str], interval: tuple[int, int]):
         remainder_days = sum([day in valid_attendance_days for day in DAYS_OF_THE_WEEK[:interval[1] + 1]])
         max_attendance = (len(valid_attendance_days) * interval[0]) + remainder_days
         
@@ -305,7 +313,7 @@ class PunctualityGraphWidget(BaseListWidget):
         prev_day = DAYS_OF_THE_WEEK[0]
         prev_dt = 1
         
-        for _, attendance in staff.attendance.items():
+        for attendance in staff.attendance:
             if ((DAYS_OF_THE_WEEK.index(attendance.day) > DAYS_OF_THE_WEEK.index(prev_day)) or
                 (prev_dt != attendance.date and
                  DAYS_OF_THE_WEEK.index(attendance.day) == DAYS_OF_THE_WEEK.index(prev_day))

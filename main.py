@@ -49,8 +49,8 @@ class Window(QMainWindow):
             
             [],
             
-            {"t_id1": Teacher("t_id1", None, CharacterName("Emily", "Mbeke", "Chinweotito", "Mbeke"), Department("d_id1", "Humanities"), [Subject("s_id1", "Civic Education", Class("c_id1", "A", "SS3", "SS3 A"), [("Friday", 2), ("Friday", 3)])], "img.png", {})},
-            {"p_id1": Prefect("p_id1", "iud_1", CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma"), "Parade Commander", Class("c_id1", "A", "SS3", "SS3 A"), "img.png", {"Friday": ["Morning", "Parade"]}, {})}
+            {"t_id1": Teacher("t_id1", None, CharacterName("Emily", "Mbeke", "Chinweotito", "Mbeke"), Department("d_id1", "Humanities"), [Subject("s_id1", "Civic Education", Class("c_id1", "A", "SS3", "SS3 A"), [("Friday", 2), ("Friday", 3)])], "img.png", [])},
+            {"p_id1": Prefect("p_id1", "iud_1", CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma"), "Parade Commander", Class("c_id1", "A", "SS3", "SS3 A"), "img.png", {"Friday": ["Morning", "Parade"]}, [])}
         )
         
         bluetooth = Bluetooth(BT_Device("IFECHUKWU", "00:19:08:36:3F:5C", LiveData(self.bt_signal)))
@@ -58,10 +58,10 @@ class Window(QMainWindow):
         # Create stacked widget for content
         staff_widget = TabViewWidget("vertical")
         staff_widget.add("Attendance", AttendanceWidget(data, bluetooth))
-        staff_widget.add("Attendance Graph", AttendanceBarWidget(data))
+        staff_widget.add("Teachers", TeacherEditorWidget(data, bluetooth, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
+        staff_widget.add("Prefects", PrefectEditorWidget(data, bluetooth, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
+        staff_widget.add("Attendance Chart", AttendanceBarWidget(data))
         staff_widget.add("Punctuality Graph", PunctualityGraphWidget(data))
-        staff_widget.add("Prefect Editor", PrefectEditorWidget(data, bluetooth, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
-        staff_widget.add("Teacher Editor", TeacherEditorWidget(data, bluetooth, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
         staff_widget.stack.addWidget(CardScanScreenWidget(bluetooth, staff_widget.stack))
         staff_widget.stack.addWidget(StaffDataWidget(data, staff_widget.stack))
         
