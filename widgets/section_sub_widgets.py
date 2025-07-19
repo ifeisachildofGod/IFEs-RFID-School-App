@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QStackedWidget, QMessageBox
 )
 
-from bt import Bluetooth
+from communication import Bluetooth
 from PyQt6.QtCore import Qt, QPoint
 
 from others import *

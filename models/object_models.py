@@ -1,6 +1,6 @@
 
 from os import PathLike
-from bt import Bluetooth
+from communication import Bluetooth
 from models.data_models import *
 from dataclasses import dataclass
 

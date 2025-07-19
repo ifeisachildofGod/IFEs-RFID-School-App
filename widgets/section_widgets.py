@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 )
 
 import time
-from bt import Bluetooth
+from communication import Bluetooth
 from typing import Literal
 from PyQt6.QtCore import Qt
 from matplotlib.cbook import flatten
@@ -85,8 +85,7 @@ class TabViewWidget(QWidget):
             self.stack.setCurrentIndex(index)
             
             for i, button in enumerate(self.tab_buttons):
-                if i != index:
-                    button.setChecked(False)
+                button.setChecked(i == index)
         
         return func
 

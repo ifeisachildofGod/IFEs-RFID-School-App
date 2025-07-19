@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QLabel, QStackedWidget
 )
 
-from bt import Bluetooth
+from communication import Bluetooth
 from PyQt6.QtCore import Qt
 from matplotlib.colors import get_named_colors_mapping
 

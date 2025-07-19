@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QGridLayout, QScrollArea, QLayout
 )
 
-from PyQt6.QtCore import QThread
+from PyQt6.QtCore import QThread, pyqtSignal
 
 DAYS_OF_THE_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 MONTHS_OF_THE_YEAR = {
@@ -68,6 +68,8 @@ def create_scrollable_widget(parent_layout: QLayout | None, layout_type: type[QH
     return scroll_widget, layout
 
 class Thread(QThread):
+    crashed = pyqtSignal(Exception)
+    
     def __init__(self, func: Callable):
         super().__init__()
         self.func = func
@@ -76,6 +78,6 @@ class Thread(QThread):
         try:
             self.func()
         except Exception as e:
-            print(e)
-            self.terminate()
+            self.crashed.emit(e)
+            self.exit(-1)
 
