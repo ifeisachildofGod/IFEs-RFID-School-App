@@ -142,10 +142,6 @@ class AttendanceWidget(BaseListWidget):
         
         bluetooth.set_data_point("IUD log", self.add_new_attendance_log)
     
-    def keyPressEvent(self, a0):
-        super().keyPressEvent(a0)
-        self.add_new_attendance_log({"IUD": "iud_1"})
-    
     def add_attendance_log(self, attendance_entry: AttendanceEntry):
         if isinstance(attendance_entry.staff, Teacher):
             widget = AttendanceTeacherWidget(attendance_entry)
