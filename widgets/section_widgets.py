@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 )
 
 import time
-from communication import Bluetooth
+from communication import BaseCommSystem
 from typing import Literal
 from PyQt6.QtCore import Qt
 from matplotlib.cbook import flatten
@@ -109,7 +109,7 @@ class BaseListWidget(QWidget):
 
 
 class AttendanceWidget(BaseListWidget):
-    def __init__(self, data: AppData, bluetooth: Bluetooth):
+    def __init__(self, data: AppData, comm_system: BaseCommSystem):
         super().__init__()
         
         self.data = data
@@ -140,7 +140,7 @@ class AttendanceWidget(BaseListWidget):
         
         self.main_layout.addStretch()
         
-        bluetooth.set_data_point("IUD", self.add_new_attendance_log)
+        comm_system.set_data_point("IUD", self.add_new_attendance_log)
     
     def add_attendance_log(self, attendance_entry: AttendanceEntry):
         if isinstance(attendance_entry.staff, Teacher):
@@ -172,20 +172,20 @@ class AttendanceWidget(BaseListWidget):
 
 
 class PrefectEditorWidget(BaseListWidget):
-    def __init__(self, data: AppData, bluetooth: Bluetooth, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+    def __init__(self, data: AppData, comm_system: BaseCommSystem, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
         super().__init__()
         
         for _, prefect in data.prefects.items():
-            self.main_layout.addWidget(EditorPrefectWidget(data, prefect, bluetooth, parent_widget, curr_index, card_scanner_index, staff_data_index))
+            self.main_layout.addWidget(EditorPrefectWidget(data, prefect, comm_system, parent_widget, curr_index, card_scanner_index, staff_data_index))
         
         self.main_layout.addStretch()
 
 class TeacherEditorWidget(BaseListWidget):
-    def __init__(self, data: AppData, bluetooth: Bluetooth, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+    def __init__(self, data: AppData, comm_system: BaseCommSystem, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
         super().__init__()
         
         for _, teacher in data.teachers.items():
-            self.main_layout.addWidget(EditorTeacherWidget(data, teacher, bluetooth, parent_widget, curr_index, card_scanner_index, staff_data_index))
+            self.main_layout.addWidget(EditorTeacherWidget(data, teacher, comm_system, parent_widget, curr_index, card_scanner_index, staff_data_index))
         
         self.main_layout.addStretch()
 
@@ -388,40 +388,36 @@ class SensorWidget(QWidget):
         
         layout.addWidget(self.labeled_container)
         
-        widget_1, layout_1 = create_widget(None, QHBoxLayout)
+        widget_1, layout_1_1 = create_widget(None, QHBoxLayout)
         
         image = Image(self.sensor.img_path, parent=self.container, width=150)
-        layout_1.addWidget(image, alignment=Qt.AlignmentFlag.AlignCenter)
-        # layout_1.addStretch()
+        layout_1_1.addWidget(image, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        widget_1_2, layout_1_2 = create_widget(None, QHBoxLayout)
+        widget_1_2_1, layout_1_2_1 = create_widget(None, QHBoxLayout)
         
-        widget_1_2_1_1, layout_1_2_1_1 = create_widget(None, QVBoxLayout)
+        widget_2, layout_2 = create_widget(None, QVBoxLayout)
         
         self.reading_slider = QSlider(Qt.Orientation.Horizontal)
-        self.sensor.bluetooth.set_data_point(sensor.meta_data.sensor_type, lambda data: self.reading_slider.setValue(data))
+        self.sensor.comm_system.set_data_point(sensor.meta_data.sensor_type, lambda data: self.reading_slider.setValue(data))
         self.reading_slider.setDisabled(True)
         self.reading_slider.setValue(0)
         
         meta_info_widget = _SensorMetaInfoWidget(self.sensor.meta_data)
-        layout_1_2.addWidget(meta_info_widget)
+        layout_1_2_1.addWidget(meta_info_widget)
         
         safety_reading_slider = QSlider(Qt.Orientation.Horizontal)
         safety_reading_slider.setValue(50)
         
-        layout_1_2_1_1.addWidget(LabeledField("Reading", self.reading_slider))
-        layout_1_2_1_1.addWidget(LabeledField("Safety Value", safety_reading_slider))
+        layout_2.addWidget(LabeledField("Reading", self.reading_slider))
+        layout_2.addWidget(LabeledField("Safety Value", safety_reading_slider))
         
-        layout_1.addWidget(widget_1_2)
+        layout_1_1.addWidget(widget_1_2_1)
         
-        self.main_layout.addWidget(LabeledField("Info", widget_1, height_size_policy=QSizePolicy.Policy.Maximum))
+        self.main_layout.addWidget(widget_1)
+        self.main_layout.addWidget(widget_2)
         
-        _, layout_2 = create_widget(self.main_layout, QVBoxLayout)
-        
-        layout_2.addWidget(LabeledField("Live Data", widget_1_2_1_1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum))
-    
-    # def reading_value_changed(self):
-    #     self.reading_slider.setStyleSheet("")
+        self.container.setDisabled(not self.sensor.comm_system.connected)
+        self.container.setToolTip(f"{self.sensor.meta_data.sensor_type} sensor disabled as there is not connection")
 
 class UltrasonicSonarWidget(QWidget):
     def __init__(self, sensor: Sensor):
@@ -457,23 +453,28 @@ class UltrasonicSonarWidget(QWidget):
         
         self.sonar_widget = SonarWidget(safety_slider.value())
         safety_slider.valueChanged.connect(self.safety_slider_moved)
-        self.sonar.bluetooth.set_data_point(("angles", "distances"), lambda angles, distances: self.sonar_widget.update_sonar(angles, distances))
+        self.sonar.comm_system.set_data_point(("angles", "distances"), lambda angles, distances: self.sonar_widget.update_sonar(angles, distances))
         
         sonar_layout.addWidget(self.sonar_widget)
         sonar_layout.addWidget(LabeledField("Safety Distance", safety_slider, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum))
         
         activate_cb.click()
         activate_cb.click()
+        
+        activate_cb.setDisabled(not self.sonar.comm_system.connected)
+        
+        if not self.sonar.comm_system.connected:
+            activate_cb.setToolTip("Disabled as there is no connection device")
     
     def safety_slider_moved(self, value: int):
         self.sonar_widget.safety_limit = value
-        self.sonar.bluetooth.send_message(f"SAFETY:{self.sonar_widget.safety_limit}")
+        self.sonar.comm_system.send_message(f"SAFETY:{self.sonar_widget.safety_limit}")
         self.sonar_widget.update_sonar(self.sonar_widget.latest_angles, self.sonar_widget.latest_distances)
     
     def toogle_activation_state(self, state):
         self.labeled_field.setDisabled(not state)
-        if self.sonar.bluetooth.connected:
-            self.sonar.bluetooth.send_message("SECURITY-ACTIVE" if state else "NOT-SECURITY-ACTIVE")
+        if self.sonar.comm_system.connected:
+            self.sonar.comm_system.send_message("SECURITY-ACTIVE" if state else "NOT-SECURITY-ACTIVE")
 
 
 

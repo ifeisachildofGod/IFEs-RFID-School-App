@@ -72,7 +72,7 @@ class BaseEditorWidget(QWidget):
     
     def set_iud(self):
         if not self.bluetooth.connected:
-            QMessageBox.warning(self.parentWidget(), "Not Connected", "Bluetooth is not connected")
+            QMessageBox.warning(self.parentWidget(), "Not Connected", "No device connected")
         else:
             card_scanner_widget: CardScanScreenWidget = self.parent_widget.widget(self.card_scanner_index)
             card_scanner_widget.set_self(self.base, self.curr_index)

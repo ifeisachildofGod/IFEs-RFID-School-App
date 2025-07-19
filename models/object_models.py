@@ -1,6 +1,6 @@
 
 from os import PathLike
-from communication import Bluetooth
+from communication import BaseCommSystem, Bluetooth
 from models.data_models import *
 from dataclasses import dataclass
 
@@ -59,5 +59,5 @@ class AttendanceEntry:
 class Sensor:
     meta_data: SensorMeta
     img_path: str
-    bluetooth: Bluetooth
+    comm_system: BaseCommSystem
 

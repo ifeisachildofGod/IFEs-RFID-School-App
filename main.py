@@ -1,19 +1,17 @@
 
-import json
-import pickle
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
-    QApplication, QMainWindow, QToolBar,
+    QApplication, QMainWindow,
     QDialog, QComboBox, QLineEdit
 )
 
 import sys
-from PyQt6.QtGui import QAction, QIntValidator
-from PyQt6.QtCore import pyqtSignal, QTimer
-from theme.theme import THEME_MANAGER
 import asyncio
 import bluetooth
 from bleak import BleakScanner
+from PyQt6.QtCore import pyqtSignal
+from theme.theme import THEME_MANAGER
+from PyQt6.QtGui import QAction, QIntValidator
 
 from communication import *
 from models.data_models import *
@@ -58,11 +56,12 @@ class SetupScreen(QDialog):
         
         
         connect_button = QPushButton("Connect")
-        connect_button.clicked.connect(self.serial_connect_clicked())
+        connect_button.clicked.connect(self.serial_connect_clicked(-1))
         
         serial_layout.addWidget(connect_button, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         
-        port_options = ["COM3", "COM6 (Elcrow Panel)", "COM5", "COM12"]
+        port_options = ["COM12", "COM7", "COM8"]
+        # port_options = ["COM3", "COM12 (Elecrow CrowPanel 7.0P)", "COM5", "COM12"]
         
         _, serial_ports_layout = create_widget(serial_layout, QHBoxLayout)
         
@@ -82,7 +81,7 @@ class SetupScreen(QDialog):
         serial_baud_rate_layout.addWidget(QLabel("Baud rate"))
         serial_baud_rate_layout.addWidget(self.baud_rate_selector_widget)
         
-        self.bluetooth_devices = [("Techno love", "1A:2B:3C:4D:5E"), ("Techno love", "1A:2B:3C:4D:5E"), ("Techno love", "1A:2B:3C:4D:5E"), ("Techno love", "1A:2B:3C:4D:5E")]
+        self.bluetooth_devices = []
         
         bluetooth_devices_widget, self.bluetooth_devices_layout = create_scrollable_widget(None, QVBoxLayout)
         
@@ -97,9 +96,13 @@ class SetupScreen(QDialog):
         bt_port_edit_layout.addWidget(QLabel("Port"))
         bt_port_edit_layout.addWidget(self.bt_port_edit)
         
-        bluetooth_layout.addWidget(LabeledField("Bluetooth Devices", bluetooth_devices_widget, height_size_policy=QSizePolicy.Policy.Maximum))
+        bluetooth_layout.addWidget(LabeledField("Bluetooth Devices", bluetooth_devices_widget, height_size_policy=QSizePolicy.Policy.Minimum))
         bluetooth_layout.addWidget(bt_port_edit_widget, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
         
+        continue_button = QPushButton("No connection")
+        continue_button.clicked.connect(self.serial_connect_clicked())
+        
+        self.main_layout.addWidget(continue_button, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
         self.main_layout.addWidget(self.main_widget)
         
         self.update_signal.connect(self._update_scans)
@@ -143,18 +146,24 @@ class SetupScreen(QDialog):
         
         bt_device_layout.addWidget(connect_button, alignment=Qt.AlignmentFlag.AlignRight)
     
-    def serial_connect_clicked(self, index: int | None = None):
+    def serial_connect_clicked(self, a0: int | None = None):
         def func():
             self.connected = True
             
-            if index is None:
+            if a0 == -1:
                 self.data["type"] = DirectSerial
                 self.data["port"] = self.port_selector_widget.currentText()
                 self.data["baud_rate"] = int(self.baud_rate_selector_widget.currentText())
-            else:
+            elif isinstance(a0, int) and a0 >= 0:
                 self.data["type"] = Bluetooth
                 self.data["port"] = int(self.bt_port_edit.text())
-                self.data["addr"] = self.bluetooth_devices[index][1]
+                self.data["addr"] = self.bluetooth_devices[a0][1]
+            elif a0 is None:
+                self.connected = False
+                
+                self.data["type"] = None
+                self.data["port"] = None
+                self.data["addr"] = None
             
             self.close()
         
@@ -162,7 +171,7 @@ class SetupScreen(QDialog):
     
     def closeEvent(self, a0):
         if self.connected:
-            response = QMessageBox.question(self, "Connection selected", "Are you want to continue with these settings",
+            response = QMessageBox.question(self, "Connection mode", "Are you want to continue with these settings",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             
             if response == QMessageBox.StandardButton.Yes:
@@ -173,8 +182,17 @@ class SetupScreen(QDialog):
                 
                 a0.ignore()
                 return
+        elif self.data:
+            response = QMessageBox.question(self, "Data viewer mode", "Are you sure you want to just view the data",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            
+            if response == QMessageBox.StandardButton.Yes:
+                a0.accept()
+            else:
+                a0.ignore()
+                return
         else:
-            response = QMessageBox.warning(self, "Quit", "Are you sure you want to quit",
+            response = QMessageBox.question(self, "Quit", "Are you sure you want to quit",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             
             if response == QMessageBox.StandardButton.Yes:
@@ -196,7 +214,7 @@ class Window(QMainWindow):
         
         self.setWindowTitle(f"IFEs Attendance Tracker")
         
-        self.create_tool_bar()
+        self.create_menu_bar()
         
         # Create main container
         container = QWidget()
@@ -222,8 +240,11 @@ class Window(QMainWindow):
             {"p_id1": Prefect("p_id1", None, CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma"), "Parade Commander", Class("c_id1", "A", "SS3", "SS3 A"), "img.png", {"Friday": ["Morning", "Parade"]}, [])}
         )
         
-        target_connector = self.connection_set_up_screen.data["type"](CommDevice(LiveData(self.bt_signal), self.connection_set_up_screen.data["port"], self.connection_set_up_screen.data.get("addr", None), self.connection_set_up_screen.data.get("baud_rate", None)), self.connection_error_func)
-        target_connector.start_connection()
+        if self.connection_set_up_screen.data["type"] is not None:
+            target_connector = self.connection_set_up_screen.data["type"](CommDevice(LiveData(self.bt_signal), self.connection_set_up_screen.data["port"], self.connection_set_up_screen.data.get("addr", None), self.connection_set_up_screen.data.get("baud_rate", None)), self.connection_error_func)
+            target_connector.start_connection()
+        else:
+            target_connector = BaseCommSystem(CommDevice(LiveData(self.bt_signal), self.connection_set_up_screen.data["port"], self.connection_set_up_screen.data.get("addr", None), self.connection_set_up_screen.data.get("baud_rate", None)), self.connection_error_func)
         
         # Create stacked widget for content
         staff_widget = TabViewWidget("vertical")
@@ -254,8 +275,11 @@ class Window(QMainWindow):
         self.setCentralWidget(container)
     
     def activate_connection_screen(self):
+        self.connection_set_up_screen.data = {}
+        
         self.connection_set_up_screen.exec()
-        if not self.connection_set_up_screen.connected:
+        
+        if not self.connection_set_up_screen.data:
             exit(0)
     
     def connection_error_func(self, e):
@@ -266,15 +290,39 @@ class Window(QMainWindow):
         
         self.activate_connection_screen()
     
-    def create_tool_bar(self):
-        toolbar = QToolBar("Hello")
-        self.toolBarArea(toolbar)
+    def create_menu_bar(self):
+        menubar = self.menuBar()
         
-        a_action = QAction("Teachers", self)
-        b_action = QAction("Prefects", self)
-        c_action = QAction("Attendace", self)
+        # File Menu
+        file_menu = menubar.addMenu("File") #type: ignore
         
-        toolbar.addActions([a_action, b_action, c_action])
+        # Add File Actions
+        new_action = QAction("New", self)
+        open_action = QAction("Open", self)
+        save_action = QAction("Save", self)
+        save_as_action = QAction("Save_as", self)
+        exit_action = QAction("Exit", self)
+        
+        new_action.setShortcut("Ctrl+N")
+        open_action.setShortcut("Ctrl+O")
+        save_action.setShortcut("Ctrl+S")
+        save_as_action.setShortcut("Ctrl+Shift+S")
+        
+        exit_action.triggered.connect(self.close)
+        
+        file_menu.addActions([new_action, open_action, save_action, save_as_action, exit_action]) #type: ignore
+    
+    def closeEvent(self, a0):
+        response = QMessageBox.question(self, "Quit", "Are you sure you want to quit",
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        
+        if response == QMessageBox.StandardButton.Yes:
+            a0.accept()
+        else:
+            a0.ignore()
+            return
+        
+        return super().closeEvent(a0)
 
 
 if __name__ == "__main__":
