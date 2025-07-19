@@ -2,7 +2,8 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QScrollArea, QLabel,
-    QSizePolicy, QStackedWidget, QSlider
+    QSizePolicy, QStackedWidget, QSlider,
+    QCheckBox
 )
 
 import time
@@ -60,10 +61,10 @@ class TabViewWidget(QWidget):
         
         main_layout.addWidget(container)
     
-    def add(self, tab_name: str, widget: QWidget):
+    def add(self, tab_name: str, widget: QWidget, func: Callable[[int, ], None] = None):
         tab_button = QPushButton(tab_name)
         tab_button.setCheckable(True)
-        tab_button.clicked.connect(self._make_tab_clicked_func(len(self.tab_buttons)))
+        tab_button.clicked.connect(self._make_tab_clicked_func(len(self.tab_buttons), func))
         tab_button.setProperty("class", "HorizontalTab" if self.bar_orientation == "horizontal" else "VerticalTab")
         tab_button.setContentsMargins(0, 0, 0, 0)
         
@@ -75,8 +76,11 @@ class TabViewWidget(QWidget):
         
         self.tab_buttons[0].click()
     
-    def _make_tab_clicked_func(self, index: int):
+    def _make_tab_clicked_func(self, index: int, clicked_func: Callable[[int, ], None] | None):
         def func():
+            if clicked_func is not None:
+                clicked_func(index)
+            
             self.stack.setCurrentIndex(index)
             
             for i, button in enumerate(self.tab_buttons):
@@ -105,7 +109,7 @@ class BaseListWidget(QWidget):
 
 
 class AttendanceWidget(BaseListWidget):
-    def __init__(self, data: AppData, rfid_live_data: LiveData):
+    def __init__(self, data: AppData, bluetooth: Bluetooth):
         super().__init__()
         
         self.data = data
@@ -136,7 +140,7 @@ class AttendanceWidget(BaseListWidget):
         
         self.main_layout.addStretch()
         
-        rfid_live_data.data_signal.connect(self.add_new_attendance_log)
+        bluetooth.set_data_point("IUD log", self.add_new_attendance_log)
     
     def keyPressEvent(self, a0):
         super().keyPressEvent(a0)
@@ -152,9 +156,7 @@ class AttendanceWidget(BaseListWidget):
         
         self.attendance_layout.addWidget(widget)
     
-    def add_new_attendance_log(self, data: dict):
-        IUD = data["IUD"]
-        
+    def add_new_attendance_log(self, IUD: str):
         staff = next((prefect for _, prefect in self.data.prefects.items() if prefect.IUD == IUD), None)
         if staff is None:
             staff = next((teacher for _, teacher in self.data.teachers.items() if teacher.IUD == IUD))
@@ -393,8 +395,7 @@ class SensorWidget(QWidget):
         widget_1_2_1_1, layout_1_2_1_1 = create_widget(None, QVBoxLayout)
         
         self.reading_slider = QSlider(Qt.Orientation.Horizontal)
-        if self.sensor.reading is not None:
-            self.sensor.reading.data_signal.connect(lambda data: self.reading_slider.setValue(data[sensor.meta_data.sensor_type]))
+        self.sensor.bluetooth.set_data_point(sensor.meta_data.sensor_type, lambda data: self.reading_slider.setValue(data))
         self.reading_slider.setDisabled(True)
         self.reading_slider.setValue(0)
         
@@ -422,6 +423,8 @@ class UltrasonicSonarWidget(QWidget):
     def __init__(self, sensor: Sensor):
         super().__init__()
         
+        self.sonar = sensor
+        
         layout = QVBoxLayout()
         self.setLayout(layout)
         
@@ -430,20 +433,33 @@ class UltrasonicSonarWidget(QWidget):
         self.main_layout = QHBoxLayout()
         self.container.setLayout(self.main_layout)
         
-        self.labeled_container = LabeledField(sensor.meta_data.sensor_type, self.container)
+        self.labeled_field = LabeledField(self.sonar.meta_data.sensor_type, self.container)
         
-        layout.addWidget(self.labeled_container)
+        activate_cb = QCheckBox("Activate Sonar")
+        activate_cb.clicked.connect(self.toogle_activation_state)
+        
+        layout.addWidget(activate_cb, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.labeled_field)
         
         sonar_widget = SonarWidget(30)
         
         ultrasonic_sensor_meta_info_widget, ultrasonic_sensor_meta_info_layout = create_widget(self.main_layout, QVBoxLayout)
         
-        ultrasonic_sensor_meta_info_layout.addWidget(Image(sensor.img_path, ultrasonic_sensor_meta_info_widget, width=150), alignment=Qt.AlignmentFlag.AlignCenter)
+        ultrasonic_sensor_meta_info_layout.addWidget(Image(self.sonar.img_path, ultrasonic_sensor_meta_info_widget, width=130), alignment=Qt.AlignmentFlag.AlignCenter)
         ultrasonic_sensor_meta_info_layout.addWidget(_SensorMetaInfoWidget(SensorMeta("Ultrasonic", "Super", "0.0.0.10", "Arduino LC")), alignment=Qt.AlignmentFlag.AlignCenter)
         
         self.main_layout.addWidget(sonar_widget)
         
-        if sensor.reading is not None:
-            sensor.reading.data_signal.connect(lambda data: sonar_widget.update_sonar(data["angles"], data["distances"]))
+        self.sonar.bluetooth.set_data_point(("angles", "distances"), lambda angles, distances: sonar_widget.update_sonar(angles, distances))
+        
+        activate_cb.click()
+        activate_cb.click()
+    
+    def toogle_activation_state(self, state):
+        self.labeled_field.setDisabled(not state)
+        if self.sonar.bluetooth.connected:
+            self.sonar.bluetooth.send_message("SECURITY-ACTIVE" if state else "NOT-SECURITY-ACTIVE")
+
+
 
 

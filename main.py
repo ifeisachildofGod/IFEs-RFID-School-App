@@ -40,14 +40,6 @@ class Window(QMainWindow):
         sidebar_layout.setSpacing(0)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         
-        gas_widget = SensorWidget(Sensor(SensorMeta("Gas", "Flying fish", "13.1.0.1", "Arduino inc"), "img.png"))
-        flame_widget = SensorWidget(Sensor(SensorMeta("Fire", "Fire free", "10.0.0.1", "Arduino inc"), "img.png"))
-        
-        safety_widget, safety_layout = create_scrollable_widget(None, QVBoxLayout)
-        
-        safety_layout.addWidget(gas_widget)
-        safety_layout.addWidget(flame_widget)
-        
         data = AppData(
             Time(7, 00, 00),
             Time(8, 00, 00),
@@ -65,18 +57,27 @@ class Window(QMainWindow):
         
         # Create stacked widget for content
         staff_widget = TabViewWidget("vertical")
-        staff_widget.add("Attendance", AttendanceWidget(data, bluetooth.device.live_data))
+        staff_widget.add("Attendance", AttendanceWidget(data, bluetooth))
         staff_widget.add("Attendance Graph", AttendanceBarWidget(data))
         staff_widget.add("Punctuality Graph", PunctualityGraphWidget(data))
         staff_widget.add("Prefect Editor", PrefectEditorWidget(data, bluetooth, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
         staff_widget.add("Teacher Editor", TeacherEditorWidget(data, bluetooth, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
-        staff_widget.stack.addWidget(CardScanScreenWidget(bluetooth.device.live_data, staff_widget.stack))
+        staff_widget.stack.addWidget(CardScanScreenWidget(bluetooth, staff_widget.stack))
         staff_widget.stack.addWidget(StaffDataWidget(data, staff_widget.stack))
+        
+        
+        gas_widget = SensorWidget(Sensor(SensorMeta("Gas", "Flying fish", "13.1.0.1", "Arduino inc"), "img.png", bluetooth))
+        flame_widget = SensorWidget(Sensor(SensorMeta("Fire", "Fire free", "10.0.0.1", "Arduino inc"), "img.png", bluetooth))
+        
+        safety_widget, safety_layout = create_scrollable_widget(None, QVBoxLayout)
+        
+        safety_layout.addWidget(gas_widget)
+        safety_layout.addWidget(flame_widget)
         
         main_screen_widget = TabViewWidget()
         main_screen_widget.add("Staff", staff_widget)
-        main_screen_widget.add("Security", UltrasonicSonarWidget(Sensor(SensorMeta("Ultrasonic", "Floating bird", "8.9.1", "Arduino inc"), "img.png")))
-        main_screen_widget.add("Safety", safety_widget)
+        main_screen_widget.add("Security", UltrasonicSonarWidget(Sensor(SensorMeta("Ultrasonic", "Floating bird", "8.9.1", "Arduino inc"), "img.png", bluetooth)), lambda _: (bluetooth.send_message("SECURITY") if bluetooth.connected else ()))
+        main_screen_widget.add("Safety", safety_widget, lambda _: (bluetooth.send_message("SAFETY") if bluetooth.connected else ()))
         
         main_layout.addWidget(main_screen_widget)
         

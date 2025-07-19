@@ -76,6 +76,7 @@ class BaseEditorWidget(QWidget):
             card_scanner_widget.set_self(self.base, self.curr_index)
             
             self.parent_widget.setCurrentIndex(self.card_scanner_index)
+            self.bluetooth.send_message("SCANNING-NEW")
     
     def view_punctuality_data(self):
         card_scanner_widget: StaffDataWidget = self.parent_widget.widget(self.staff_data_index)

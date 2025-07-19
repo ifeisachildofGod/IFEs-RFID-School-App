@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from matplotlib.colors import get_named_colors_mapping
 
+from bt import Bluetooth
 from models.data_models import *
 from models.object_models import *
 from widgets.base_widgets import *
@@ -138,7 +139,7 @@ class StaffDataWidget(BaseExtraWidget):
         self.main_layout.addWidget(self.punctuality_widget)
 
 class CardScanScreenWidget(BaseExtraWidget):
-    def __init__(self, rfid_live_data: LiveData, parent_widget: QStackedWidget):
+    def __init__(self, bluetooth: Bluetooth, parent_widget: QStackedWidget):
         super().__init__(parent_widget, "static")
         
         self.setStyleSheet("""
@@ -160,15 +161,15 @@ class CardScanScreenWidget(BaseExtraWidget):
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.info_label, Qt.AlignmentFlag.AlignCenter)
         
-        rfid_live_data.data_signal.connect(self.scanned)
+        bluetooth.set_data_point("IUD set", self.scanned)
     
     def set_self(self, staff, staff_index):
         super().set_self(staff, staff_index)
         
         self.info_label.setText(f"To link an IUD to {self.staff.name.sur} {self.staff.name.first} (ID: {self.staff.id})")
     
-    def scanned(self, data: dict):
-        self.staff.IUD = data["IUD"]
+    def scanned(self, data: str):
+        self.staff.IUD = data
         
         self.finished()
 

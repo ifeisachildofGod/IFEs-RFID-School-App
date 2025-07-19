@@ -12,7 +12,11 @@ stylesheet = '''
     font-size: 13px;
     margin: 0px
   }}
-
+  
+  QLabel:disabled {{
+    color: {disabled};
+  }}
+  
   QLineEdit, QTextEdit, QPlainTextEdit {{
     background-color: {input_bg};
     color: {text};
@@ -156,13 +160,40 @@ stylesheet = '''
   QPushButton.HorizontalTab:checked:hover {{
       background-color: {hover3};
   }}
-  
+  QCheckBox {{
+      color: {text};
+      spacing: 8px;
+      padding: 4px;
+  }}
+  QCheckBox::indicator {{
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid {border};
+  }}
+  QCheckBox::indicator:unchecked {{
+      background-color: {bg};
+  }}
+  QCheckBox::indicator:checked {{
+      background-color: {primary};
+      border-color: {primary};
+  }}
+  QCheckBox::indicator:hover {{
+      border-color: {primary_hover};
+  }}
+
   .labeled-widget {{
     border: 1px solid {hover3};
+  }}
+  .labeled-widget:disabled {{
+    border: 1px solid {disabled};
   }}
   
   .labeled-title {{
 		color: {hover3};
+  }}
+  .labeled-title:disabled {{
+		color: {disabled};
   }}
   
   .options-button {{
@@ -272,7 +303,7 @@ class ThemeManager:
         try:
             applied_stylesheet = stylesheet_template.format(**palette_vars)
         except KeyError as e:
-            raise KeyError(f"Missing color value for: {e}")
+            raise KeyError(f"Missing color value for: {e} on line {stylesheet_template[:stylesheet_template.find(str(e))].count("\n") + 1}")
         
         app.theme = theme
         app.setStyleSheet(applied_stylesheet)

@@ -1,5 +1,6 @@
 
 from os import PathLike
+from bt import Bluetooth
 from models.data_models import *
 from dataclasses import dataclass
 
@@ -58,5 +59,5 @@ class AttendanceEntry:
 class Sensor:
     meta_data: SensorMeta
     img_path: str
-    reading: LiveData | None = None
+    bluetooth: Bluetooth
 
