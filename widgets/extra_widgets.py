@@ -33,7 +33,7 @@ class BaseExtraWidget(QWidget):
         
         cancel_button = QPushButton("×")
         cancel_button.setFixedSize(30, 30)
-        cancel_button.setStyleSheet("font-size: 25px; border-radius: 15px;")
+        cancel_button.setStyleSheet("font-size: 25px; border-radius: 15px; padding: 0px")
         cancel_button.clicked.connect(self.finished)
         
         upper_layout.addStretch()
@@ -142,19 +142,19 @@ class CardScanScreenWidget(BaseExtraWidget):
         super().__init__(parent_widget, "static")
         
         self.setStyleSheet("""
-            QWidget {
-                background-color: darkgrey;
-            }
             QLabel {
-                color: white;
+                font-size: 30px;
+                font-weight: bold;
             }
         """)
         
-        self.main_layout.addWidget(Image("img.png"), Qt.AlignmentFlag.AlignCenter)
+        scan_img = Image("img.png", height=330)
+        scan_img.setStyleSheet("margin-bottom: 20px;")
+        self.main_layout.addWidget(scan_img, alignment=Qt.AlignmentFlag.AlignCenter)
         
         info = QLabel("Please scan RFID card")
         info.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addWidget(info, Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addWidget(info, alignment=Qt.AlignmentFlag.AlignCenter)
         
         self.info_label = QLabel()
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

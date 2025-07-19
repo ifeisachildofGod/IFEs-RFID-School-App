@@ -1,24 +1,19 @@
-import random
-import sys
-from typing import Callable, Literal
-from matplotlib.cbook import flatten
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
-    QApplication,
-    QLineEdit, QPushButton, QScrollArea,
-    QTableWidget, QLabel, QFrame,
-    QAbstractItemView, QHeaderView, QMenu, QSizePolicy,
-    QProgressBar, QCheckBox, QMainWindow,
-    QStackedWidget, QMessageBox, QFileDialog, QToolBar,
+    QApplication, QMainWindow, QToolBar
 )
-from widgets.base_widgets import *
-from widgets.section_widgets import *
+
+import sys
+from PyQt6.QtGui import QAction
+from PyQt6.QtCore import pyqtSignal
+from bt import BT_Device, Bluetooth
+from theme.theme import THEME_MANAGER
+
 from models.data_models import *
 from models.object_models import *
-from PyQt6.QtGui import QDrag, QDragEnterEvent, QDragMoveEvent, QDropEvent, QAction, QImage
-from PyQt6.QtCore import Qt, QMimeData, QThread, QTimer, pyqtSignal
-from theme.theme import ThemeManager, THEME_MANAGER
-from bt import BT_Device, Bluetooth
+from widgets.base_widgets import *
+from widgets.section_widgets import *
 
 
 addr = "00:19:08:36:3F:5C"

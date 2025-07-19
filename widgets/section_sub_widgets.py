@@ -88,7 +88,7 @@ class BaseEditorWidget(QWidget):
             self.options_menu.hide()
         else:
             # Position below the options button
-            button_pos = self.options_button.mapToGlobal(QPoint(-100, self.options_button.height()))
+            button_pos = self.options_button.mapToGlobal(QPoint(-130, self.options_button.height()))
             self.options_menu.move(button_pos)
             self.options_menu.show()
 
