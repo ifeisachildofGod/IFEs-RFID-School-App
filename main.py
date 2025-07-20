@@ -282,13 +282,14 @@ class Window(QMainWindow):
         if not self.connection_set_up_screen.data:
             exit(0)
     
-    def connection_error_func(self, e):
+    def connection_error_func(self, e: Exception):
         self.connection_set_up_screen.connected = False
         self.connection_set_up_screen.data = {}
         
         QMessageBox.warning(self, "Connection Error", str(e))
         
-        self.activate_connection_screen()
+        exit(-1)
+        # self.activate_connection_screen()
     
     def create_menu_bar(self):
         menubar = self.menuBar()

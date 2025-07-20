@@ -6,6 +6,7 @@ from others import Thread
 from typing import Callable
 from dataclasses import dataclass
 from models.data_models import LiveData
+from PyQt6.QtCore import pyqtBoundSignal
 
 @dataclass
 class CommDevice:
@@ -21,13 +22,15 @@ class BaseCommSystem:
         
         self.connected = False
         self.connection_message = ""
-        self.data_points = {}
+        self.data_points: list[tuple[int | str | list[str], pyqtBoundSignal]] = []
+        
+        self.direct_signal = self.device.live_data.data_signal
     
-    def set_data_point(self, key: str | list[str], func: Callable):
+    def set_data_point(self, key: int | str | list[str], signal: pyqtBoundSignal):
         if isinstance(key, str):
-            self.data_points[key] = func
+            self.data_points.append((key, signal))
         elif isinstance(key, (list, set, tuple)):
-            self.data_points[list[key]] = func
+            self.data_points.append((list[key], signal))
         else:
             raise Exception(f"Bad key type: {type(key)}")
     
@@ -47,6 +50,9 @@ class BaseCommSystem:
     def stop_connection(self):
         self.connected = False
     
+    def _init_process_data(self, data: bytes):
+        return data.decode().strip().removesuffix("|").strip()
+    
     def _crashed(self, e: Exception):
         self.connection_thread.quit()
         self.error_func(e)
@@ -56,21 +62,21 @@ class BaseCommSystem:
         
         data_key_mapping = {}
         for key, info in full_data.items():
-            for d_k, d_func in self.data_points.items():
+            for d_k, d_signal in self.data_points:
                 if isinstance(d_k, str):
                     if key == d_k:
-                        d_func(info)
-                        break
+                        d_signal.emit(info)
+                        # break
                 elif isinstance(d_k, list):
                     if key in d_k:
                         if d_k not in data_key_mapping:
                             data_key_mapping[d_k] = [None for _ in range(len(d_k))]
                         data_key_mapping[d_k][d_k.index(key)] = info
                         if None not in data_key_mapping[d_k]:
-                            d_func(*data_key_mapping[d_k])
-                    break
+                            d_signal.emit(data_key_mapping[d_k])
+                            # break
         
-        self.device.live_data.data_signal.emit(full_data)
+        self.direct_signal.emit(full_data)
     
     def _connect(self):
         raise NotImplementedError()
@@ -87,7 +93,7 @@ class BaseCommSystem:
     def _process_sub_data(self, data: str):
         data = data.strip()
         
-        var_type = data[:data.find("(")].removeprefix(var_type).strip().removeprefix(f"(").removesuffix(")")
+        var_type = data[:data.find("(")]
         
         data = data.removeprefix(var_type).strip().removeprefix(f"(").removesuffix(")")
         
@@ -103,24 +109,6 @@ class BaseCommSystem:
         return data
 
 
-class Bluetooth(BaseCommSystem):
-    def __init__(self, device: CommDevice, error_func):
-        super().__init__(device, error_func)
-        
-        assert self.device.addr is not None, "Invalid device"
-    
-    def _connect(self):
-        with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
-            bt_comm.connect((self.device.addr, self.device.port))
-            
-            while self.connected:
-                bt_comm.send(self.connection_message.encode())
-                msg_recv = bt_comm.recv(1024).decode().strip()
-                
-                if msg_recv:
-                    self._data_process(msg_recv)
-                
-                self.connection_message = ""
 
 class DirectSerial(BaseCommSystem):
     def __init__(self, device: CommDevice, error_func):
@@ -134,15 +122,34 @@ class DirectSerial(BaseCommSystem):
         time.sleep(2)  # Wait for Target to initialize
         
         while self.connected:
+            if self.connection_message:
+                serial_target.write(self.connection_message.encode())
+            
             if serial_target.in_waiting > 0:
-                if self.connection_message:
-                    serial_target.write(bytes(self.connection_message))
+                msg_recv = self._init_process_data(serial_target.readline())
+                if msg_recv:
+                    self._data_process(msg_recv)
+            
+            self.connection_message = ""
+        
+        serial_target.close()
+
+
+class Bluetooth(BaseCommSystem):
+    def __init__(self, device: CommDevice, error_func):
+        super().__init__(device, error_func)
+        
+        assert self.device.addr is not None, "Invalid device"
+    
+    def _connect(self):
+        with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
+            bt_comm.connect((self.device.addr, self.device.port))
+            
+            while self.connected:
+                bt_comm.send(self.connection_message.encode())
+                msg_recv = self._init_process_data(bt_comm.recv(1024))
                 
-                msg_recv = serial_target.readline().decode().strip()
                 if msg_recv:
                     self._data_process(msg_recv)
                 
                 self.connection_message = ""
-        
-        serial_target.close()
-

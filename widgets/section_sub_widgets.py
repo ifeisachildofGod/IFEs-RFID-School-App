@@ -65,17 +65,17 @@ class BaseEditorWidget(QWidget):
         
         _, self.sub_info_layout = create_widget(self.main_layout, QHBoxLayout)
         
-        iud_label = QLabel(self.base.IUD if self.base.IUD is not None else "No set IUD")
-        iud_label.setStyleSheet("font-weight: bold;")
+        self.iud_label = QLabel(self.base.IUD if self.base.IUD is not None else "No set IUD")
+        self.iud_label.setStyleSheet("font-weight: bold;")
         
-        self.sub_info_layout.addWidget(LabeledField("IUD", iud_label), alignment=Qt.AlignmentFlag.AlignLeft)
+        self.sub_info_layout.addWidget(LabeledField("IUD", self.iud_label), alignment=Qt.AlignmentFlag.AlignLeft)
     
     def set_iud(self):
         if not self.bluetooth.connected:
             QMessageBox.warning(self.parentWidget(), "Not Connected", "No device connected")
         else:
             card_scanner_widget: CardScanScreenWidget = self.parent_widget.widget(self.card_scanner_index)
-            card_scanner_widget.set_self(self.base, self.curr_index)
+            card_scanner_widget.set_self(self.base, self.curr_index, self.iud_label)
             
             self.parent_widget.setCurrentIndex(self.card_scanner_index)
             self.bluetooth.send_message("SCANNING")
@@ -156,7 +156,7 @@ class AttendanceTeacherWidget(BaseAttendanceWidget):
         layout_1_2_1.addWidget(LabeledField("Day", QLabel(data.day)))
         layout_1_2_1.addWidget(LabeledField("Date", QLabel(f"{self.positionify(str(data.date))} of {data.month}, {data.year}")))
         
-        layout_1_2.addWidget(LabeledField("Date Info", widget_1_2_1), height_size_policy=QSizePolicy.Policy.Maximum)
+        layout_1_2.addWidget(LabeledField("Date Info", widget_1_2_1, height_size_policy=QSizePolicy.Policy.Maximum))
         
         widget_1_2_2, layout_1_2_2 = create_widget(None, QHBoxLayout)
         

@@ -109,6 +109,8 @@ class BaseListWidget(QWidget):
 
 
 class AttendanceWidget(BaseListWidget):
+    comm_signal = pyqtSignal(str)
+    
     def __init__(self, data: AppData, comm_system: BaseCommSystem):
         super().__init__()
         
@@ -140,7 +142,8 @@ class AttendanceWidget(BaseListWidget):
         
         self.main_layout.addStretch()
         
-        comm_system.set_data_point("IUD", self.add_new_attendance_log)
+        self.comm_signal.connect(self.add_new_attendance_log)
+        comm_system.set_data_point("IUD", self.comm_signal)
     
     def add_attendance_log(self, attendance_entry: AttendanceEntry):
         if isinstance(attendance_entry.staff, Teacher):
@@ -155,20 +158,21 @@ class AttendanceWidget(BaseListWidget):
     def add_new_attendance_log(self, IUD: str):
         staff = next((prefect for _, prefect in self.data.prefects.items() if prefect.IUD == IUD), None)
         if staff is None:
-            staff = next((teacher for _, teacher in self.data.teachers.items() if teacher.IUD == IUD))
+            staff = next((teacher for _, teacher in self.data.teachers.items() if teacher.IUD == IUD), None)
         
-        day, month, date, t, year = time.ctime().split()
-        hour, min, sec = t.split(":")
-        
-        day = next((dotw for dotw in DAYS_OF_THE_WEEK if day in dotw))
-        month = next((moty for moty in MONTHS_OF_THE_YEAR if month in moty))
-        
-        entry = AttendanceEntry(Time(int(hour), int(min), int(sec)), day, int(date), month, int(year), staff)
-        
-        self.add_attendance_log(entry)
-        
-        staff.attendance.append(entry)
-        self.data.attendance_data.append(entry)
+        if staff is not None:
+            day, month, date, t, year = time.ctime().split()
+            hour, min, sec = t.split(":")
+            
+            day = next((dotw for dotw in DAYS_OF_THE_WEEK if day in dotw))
+            month = next((moty for moty in MONTHS_OF_THE_YEAR if month in moty))
+            
+            entry = AttendanceEntry(Time(int(hour), int(min), int(sec)), day, int(date), month, int(year), staff)
+            
+            self.add_attendance_log(entry)
+            
+            staff.attendance.append(entry)
+            self.data.attendance_data.append(entry)
 
 
 class PrefectEditorWidget(BaseListWidget):
@@ -371,6 +375,8 @@ class _SensorMetaInfoWidget(QWidget):
         self.main_layout.addWidget(LabeledField("Meta Info", widget_2_1, QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Maximum))
 
 class SensorWidget(QWidget):
+    comm_signal = pyqtSignal(int)
+    
     def __init__(self, sensor: Sensor):
         super().__init__()
         
@@ -398,7 +404,10 @@ class SensorWidget(QWidget):
         widget_2, layout_2 = create_widget(None, QVBoxLayout)
         
         self.reading_slider = QSlider(Qt.Orientation.Horizontal)
-        self.sensor.comm_system.set_data_point(sensor.meta_data.sensor_type, lambda data: self.reading_slider.setValue(data))
+        
+        self.comm_signal.connect(lambda data: self.reading_slider.setValue(data))
+        self.sensor.comm_system.set_data_point(sensor.meta_data.sensor_type, self.comm_signal)
+        
         self.reading_slider.setDisabled(True)
         self.reading_slider.setValue(0)
         
@@ -420,6 +429,8 @@ class SensorWidget(QWidget):
         self.container.setToolTip(f"{self.sensor.meta_data.sensor_type} sensor disabled as there is not connection")
 
 class UltrasonicSonarWidget(QWidget):
+    cmm_signal = pyqtSignal(list)
+    
     def __init__(self, sensor: Sensor):
         super().__init__()
         
@@ -453,7 +464,9 @@ class UltrasonicSonarWidget(QWidget):
         
         self.sonar_widget = SonarWidget(safety_slider.value())
         safety_slider.valueChanged.connect(self.safety_slider_moved)
-        self.sonar.comm_system.set_data_point(("angles", "distances"), lambda angles, distances: self.sonar_widget.update_sonar(angles, distances))
+        
+        self.cmm_signal.connect(lambda args: self.sonar_widget.update_sonar(args[0], args[1]))
+        self.sonar.comm_system.set_data_point(("angles", "distances"), self.cmm_signal)
         
         sonar_layout.addWidget(self.sonar_widget)
         sonar_layout.addWidget(LabeledField("Safety Distance", safety_slider, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum))

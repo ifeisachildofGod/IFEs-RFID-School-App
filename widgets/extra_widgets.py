@@ -139,7 +139,9 @@ class StaffDataWidget(BaseExtraWidget):
         self.main_layout.addWidget(self.punctuality_widget)
 
 class CardScanScreenWidget(BaseExtraWidget):
-    def __init__(self, bluetooth: Bluetooth, parent_widget: QStackedWidget):
+    comm_signal = pyqtSignal(str)
+    
+    def __init__(self, comm_device: BaseCommSystem, parent_widget: QStackedWidget):
         super().__init__(parent_widget, "static")
         
         self.setStyleSheet("""
@@ -161,15 +163,27 @@ class CardScanScreenWidget(BaseExtraWidget):
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.info_label, Qt.AlignmentFlag.AlignCenter)
         
-        bluetooth.set_data_point("IUD", self.scanned)
+        self.comm_signal.connect(self.scanned)
+        comm_device.set_data_point("IUD", self.comm_signal)
+        
+        self.iud_label = None
     
-    def set_self(self, staff, staff_index):
+    def set_self(self, staff: Teacher | Prefect, staff_index: int, iud_label: QLabel):
         super().set_self(staff, staff_index)
+        
+        self.iud_label = iud_label
         
         self.info_label.setText(f"To link an IUD to {self.staff.name.sur} {self.staff.name.first} (ID: {self.staff.id})")
     
-    def scanned(self, data: str):
-        self.staff.IUD = data
+    def finished(self):
+        self.iud_label = None
         
-        self.finished()
+        return super().finished()
+    
+    def scanned(self, data: str):
+        if self.parent_widget.indexOf(self) == self.parent_widget.currentIndex():
+            self.staff.IUD = data
+            self.iud_label.setText(self.staff.IUD)
+            
+            self.finished()
 
