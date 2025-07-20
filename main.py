@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 
 import sys
 import asyncio
-import bluetooth
+import bluetooth as bt_classic
 from bleak import BleakScanner
 from PyQt6.QtCore import pyqtSignal
 from theme.theme import THEME_MANAGER
@@ -27,7 +27,7 @@ class SetupScreen(QDialog):
         super().__init__(parent=parent)
         
         self.setFocus()
-        self.setModal(True)
+        # self.setModal(True)
         self.setWindowTitle("Connection Config")
         self.setFixedWidth(700)
         self.setFixedHeight(500)
@@ -35,7 +35,7 @@ class SetupScreen(QDialog):
         self.ble_scanner = BleakScanner()
         
         self.connected = False
-        self.data: dict[str, str | int | type[DirectSerial] | type[Bluetooth]] = {}
+        self.data: dict[str, str | int | Literal["bluetooth", "serial"]] = {}
         
         
         self.connection_thread = Thread(self.update_scans)
@@ -122,7 +122,7 @@ class SetupScreen(QDialog):
     
     def update_scans(self):
         while not self.connected:
-            bt_data = bluetooth.discover_devices(lookup_names=True) + [(bl_info.address, bl_info.name) for bl_info in asyncio.run(self.ble_scanner.discover())]
+            bt_data = bt_classic.discover_devices(lookup_names=True) + [(bl_info.address, bl_info.name) for bl_info in asyncio.run(self.ble_scanner.discover())]
             
             self.update_signal.emit(bt_data)
             
@@ -151,17 +151,17 @@ class SetupScreen(QDialog):
             self.connected = True
             
             if a0 == -1:
-                self.data["type"] = DirectSerial
+                self.data["connection-type"] = "serial"
                 self.data["port"] = self.port_selector_widget.currentText()
                 self.data["baud_rate"] = int(self.baud_rate_selector_widget.currentText())
             elif isinstance(a0, int) and a0 >= 0:
-                self.data["type"] = Bluetooth
+                self.data["connection-type"] = "bluetooth"
                 self.data["port"] = int(self.bt_port_edit.text())
                 self.data["addr"] = self.bluetooth_devices[a0][1]
             elif a0 is None:
                 self.connected = False
                 
-                self.data["type"] = None
+                self.data["connection-type"] = None
                 self.data["port"] = None
                 self.data["addr"] = None
             
@@ -204,13 +204,14 @@ class SetupScreen(QDialog):
         return super().closeEvent(a0)
 
 class Window(QMainWindow):
-    bt_signal = pyqtSignal(dict)
+    comm_signal = pyqtSignal(dict)
+    connection_changed = pyqtSignal(bool)
     
     def __init__(self) -> None:
         super().__init__()
         
         self.connection_set_up_screen = SetupScreen(self)
-        self.activate_connection_screen()
+        self.target_connector = BaseCommSystem(CommDevice(LiveData(self.comm_signal), self.connection_changed, "", None, None), self.connection_error_func)
         
         self.setWindowTitle(f"IFEs Attendance Tracker")
         
@@ -240,25 +241,19 @@ class Window(QMainWindow):
             {"p_id1": Prefect("p_id1", None, CharacterName("Eze", "Emmanuel", "Udochukwu", "Emma"), "Parade Commander", Class("c_id1", "A", "SS3", "SS3 A"), "img.png", {"Friday": ["Morning", "Parade"]}, [])}
         )
         
-        if self.connection_set_up_screen.data["type"] is not None:
-            target_connector = self.connection_set_up_screen.data["type"](CommDevice(LiveData(self.bt_signal), self.connection_set_up_screen.data["port"], self.connection_set_up_screen.data.get("addr", None), self.connection_set_up_screen.data.get("baud_rate", None)), self.connection_error_func)
-            target_connector.start_connection()
-        else:
-            target_connector = BaseCommSystem(CommDevice(LiveData(self.bt_signal), self.connection_set_up_screen.data["port"], self.connection_set_up_screen.data.get("addr", None), self.connection_set_up_screen.data.get("baud_rate", None)), self.connection_error_func)
-        
         # Create stacked widget for content
         staff_widget = TabViewWidget("vertical")
-        staff_widget.add("Attendance", AttendanceWidget(data, target_connector))
-        staff_widget.add("Teachers", TeacherEditorWidget(data, target_connector, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
-        staff_widget.add("Prefects", PrefectEditorWidget(data, target_connector, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
+        staff_widget.add("Attendance", AttendanceWidget(data, self.target_connector))
+        staff_widget.add("Teachers", TeacherEditorWidget(data, self.target_connector, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
+        staff_widget.add("Prefects", PrefectEditorWidget(data, self.target_connector, staff_widget.stack, len(staff_widget.tab_buttons), 5, 6))
         staff_widget.add("Attendance Chart", AttendanceBarWidget(data))
         staff_widget.add("Punctuality Graph", PunctualityGraphWidget(data))
-        staff_widget.stack.addWidget(CardScanScreenWidget(target_connector, staff_widget.stack))
+        staff_widget.stack.addWidget(CardScanScreenWidget(self.target_connector, staff_widget.stack))
         staff_widget.stack.addWidget(StaffDataWidget(data, staff_widget.stack))
         
         
-        gas_widget = SensorWidget(Sensor(SensorMeta("Gas", "Flying fish", "13.1.0.1", "Arduino inc"), "img.png", target_connector))
-        flame_widget = SensorWidget(Sensor(SensorMeta("Fire", "Fire free", "10.0.0.1", "Arduino inc"), "img.png", target_connector))
+        gas_widget = SensorWidget(Sensor(SensorMeta("Gas", "Flying fish", "13.1.0.1", "Arduino inc"), "img.png", self.target_connector))
+        flame_widget = SensorWidget(Sensor(SensorMeta("Fire", "Fire free", "10.0.0.1", "Arduino inc"), "img.png", self.target_connector))
         
         safety_widget, safety_layout = create_scrollable_widget(None, QVBoxLayout)
         
@@ -267,8 +262,8 @@ class Window(QMainWindow):
         
         main_screen_widget = TabViewWidget()
         main_screen_widget.add("Staff", staff_widget)
-        main_screen_widget.add("Security", UltrasonicSonarWidget(Sensor(SensorMeta("Ultrasonic", "Floating bird", "8.9.1", "Arduino inc"), "img.png", target_connector)), lambda _: (target_connector.send_message("SECURITY") if target_connector.connected else ()))
-        main_screen_widget.add("Safety", safety_widget, lambda _: (target_connector.send_message("SAFETY") if target_connector.connected else ()))
+        main_screen_widget.add("Security", UltrasonicSonarWidget(Sensor(SensorMeta("Ultrasonic", "Floating bird", "8.9.1", "Arduino inc"), "img.png", self.target_connector)), lambda _: (self.target_connector.send_message("SECURITY") if self.target_connector.connected else ()))
+        main_screen_widget.add("Safety", safety_widget, lambda _: (self.target_connector.send_message("SAFETY") if self.target_connector.connected else ()))
         
         main_layout.addWidget(main_screen_widget)
         
@@ -281,21 +276,32 @@ class Window(QMainWindow):
         
         if not self.connection_set_up_screen.data:
             exit(0)
+        
+        self.target_connector.device.port = self.connection_set_up_screen.data["port"]
+        self.target_connector.device.addr = self.connection_set_up_screen.data.get("addr", None)
+        self.target_connector.device.baud_rate = self.connection_set_up_screen.data.get("baud_rate", None)
+        
+        if self.connection_set_up_screen.data["connection-type"] is not None:
+            self.target_connector.set_bluetooth(self.connection_set_up_screen.data["connection-type"] == "bluetooth")
+            self.target_connector.set_serial(self.connection_set_up_screen.data["connection-type"] == "serial")
+            
+            self.target_connector.start_connection()
     
     def connection_error_func(self, e: Exception):
+        self.target_connector.stop_connection()
         self.connection_set_up_screen.connected = False
         self.connection_set_up_screen.data = {}
         
         QMessageBox.warning(self, "Connection Error", str(e))
         
-        exit(-1)
-        # self.activate_connection_screen()
+        self.activate_connection_screen()
     
     def create_menu_bar(self):
         menubar = self.menuBar()
         
         # File Menu
         file_menu = menubar.addMenu("File") #type: ignore
+        connection_menu = menubar.addMenu("Connection") #type: ignore
         
         # Add File Actions
         new_action = QAction("New", self)
@@ -304,14 +310,25 @@ class Window(QMainWindow):
         save_as_action = QAction("Save_as", self)
         exit_action = QAction("Exit", self)
         
+        set_connection = QAction("Set", self)
+        break_connection = QAction("Break", self)
+        
         new_action.setShortcut("Ctrl+N")
         open_action.setShortcut("Ctrl+O")
         save_action.setShortcut("Ctrl+S")
         save_as_action.setShortcut("Ctrl+Shift+S")
         
+        set_connection.setShortcut("Ctrl+F")
+        break_connection.setShortcut("Ctrl+Shift+F")
+        
         exit_action.triggered.connect(self.close)
+        set_connection.triggered.connect(self.activate_connection_screen)
+        
+        def _break_connection(): self.target_connector.connected = False
+        break_connection.triggered.connect(_break_connection)
         
         file_menu.addActions([new_action, open_action, save_action, save_as_action, exit_action]) #type: ignore
+        connection_menu.addActions([set_connection, break_connection])
     
     def closeEvent(self, a0):
         response = QMessageBox.question(self, "Quit", "Are you sure you want to quit",

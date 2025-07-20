@@ -5,7 +5,6 @@ from PyQt6.QtWidgets import (
     QLabel, QStackedWidget
 )
 
-from communication import Bluetooth
 from PyQt6.QtCore import Qt
 from matplotlib.colors import get_named_colors_mapping
 
@@ -167,6 +166,8 @@ class CardScanScreenWidget(BaseExtraWidget):
         comm_device.set_data_point("IUD", self.comm_signal)
         
         self.iud_label = None
+        
+        comm_device.connection_changed_signal.connect(self.connection_changed)
     
     def set_self(self, staff: Teacher | Prefect, staff_index: int, iud_label: QLabel):
         super().set_self(staff, staff_index)
@@ -179,6 +180,10 @@ class CardScanScreenWidget(BaseExtraWidget):
         self.iud_label = None
         
         return super().finished()
+    
+    def connection_changed(self, state: bool):
+        if not state and self.parent_widget.indexOf(self) == self.parent_widget.currentIndex():
+            self.finished()
     
     def scanned(self, data: str):
         if self.parent_widget.indexOf(self) == self.parent_widget.currentIndex():

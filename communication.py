@@ -11,6 +11,7 @@ from PyQt6.QtCore import pyqtBoundSignal
 @dataclass
 class CommDevice:
     live_data: LiveData
+    connection_changed: pyqtBoundSignal
     port: int | str
     addr: str | None = None
     baud_rate: int | None = None
@@ -21,10 +22,22 @@ class BaseCommSystem:
         self.error_func = error_func
         
         self.connected = False
+        self.device.connection_changed.emit(self.connected)
+        
         self.connection_message = ""
         self.data_points: list[tuple[int | str | list[str], pyqtBoundSignal]] = []
         
         self.direct_signal = self.device.live_data.data_signal
+        self.connection_changed_signal = self.device.connection_changed
+        
+        self.serial_mode = False
+        self.bluetooth_mode = False
+    
+    def set_bluetooth(self, a0: bool):
+        self.bluetooth_mode = a0
+    
+    def set_serial(self, a0: bool):
+        self.serial_mode = a0
     
     def set_data_point(self, key: int | str | list[str], signal: pyqtBoundSignal):
         if isinstance(key, str):
@@ -42,6 +55,7 @@ class BaseCommSystem:
             raise Exception("Comm device already connected")
         
         self.connected = True
+        self.device.connection_changed.emit(self.connected)
         
         self.connection_thread = Thread(self._connect)
         self.connection_thread.crashed.connect(self._crashed)
@@ -49,6 +63,7 @@ class BaseCommSystem:
     
     def stop_connection(self):
         self.connected = False
+        self.device.connection_changed.emit(self.connected)
     
     def _init_process_data(self, data: bytes):
         return data.decode().strip().removesuffix("|").strip()
@@ -79,7 +94,40 @@ class BaseCommSystem:
         self.direct_signal.emit(full_data)
     
     def _connect(self):
-        raise NotImplementedError()
+        if self.serial_mode:
+            assert self.device.baud_rate is not None, "Invalid device"
+            
+            serial_target = serial.Serial(self.device.port, self.device.baud_rate, timeout=1)
+            
+            time.sleep(2)  # Wait for Target to initialize
+            
+            while self.connected:
+                if self.connection_message:
+                    serial_target.write(self.connection_message.encode())
+                
+                if serial_target.in_waiting > 0:
+                    msg_recv = self._init_process_data(serial_target.readline())
+                    if msg_recv:
+                        self._data_process(msg_recv)
+                
+                self.connection_message = ""
+            
+            serial_target.close()
+        
+        if self.bluetooth_mode:
+            assert self.device.baud_rate is not None, "Invalid device"
+            
+            with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
+                bt_comm.connect((self.device.addr, self.device.port))
+                
+                while self.connected:
+                    bt_comm.send(self.connection_message.encode())
+                    msg_recv = self._init_process_data(bt_comm.recv(1024))
+                    
+                    if msg_recv:
+                        self._data_process(msg_recv)
+                    
+                    self.connection_message = ""
     
     def _process_data(self, data: str):
         processed_data = {}
@@ -110,46 +158,47 @@ class BaseCommSystem:
 
 
 
-class DirectSerial(BaseCommSystem):
-    def __init__(self, device: CommDevice, error_func):
-        super().__init__(device, error_func)
+# class DirectSerial(BaseCommSystem):
+#     def __init__(self, device: CommDevice, error_func):
+#         super().__init__(device, error_func)
         
-        assert self.device.baud_rate is not None, "Invalid device"
+#         assert self.device.baud_rate is not None, "Invalid device"
     
-    def _connect(self):
-        serial_target = serial.Serial(self.device.port, self.device.baud_rate, timeout=1)
+#     def _connect(self):
+#         serial_target = serial.Serial(self.device.port, self.device.baud_rate, timeout=1)
         
-        time.sleep(2)  # Wait for Target to initialize
+#         time.sleep(2)  # Wait for Target to initialize
         
-        while self.connected:
-            if self.connection_message:
-                serial_target.write(self.connection_message.encode())
+#         while self.connected:
+#             if self.connection_message:
+#                 serial_target.write(self.connection_message.encode())
             
-            if serial_target.in_waiting > 0:
-                msg_recv = self._init_process_data(serial_target.readline())
-                if msg_recv:
-                    self._data_process(msg_recv)
+#             if serial_target.in_waiting > 0:
+#                 msg_recv = self._init_process_data(serial_target.readline())
+#                 if msg_recv:
+#                     self._data_process(msg_recv)
             
-            self.connection_message = ""
+#             self.connection_message = ""
         
-        serial_target.close()
+#         serial_target.close()
 
 
-class Bluetooth(BaseCommSystem):
-    def __init__(self, device: CommDevice, error_func):
-        super().__init__(device, error_func)
+# class Bluetooth(BaseCommSystem):
+#     def __init__(self, device: CommDevice, error_func):
+#         super().__init__(device, error_func)
         
-        assert self.device.addr is not None, "Invalid device"
+#         assert self.device.addr is not None, "Invalid device"
     
-    def _connect(self):
-        with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
-            bt_comm.connect((self.device.addr, self.device.port))
+#     def _connect(self):
+#         with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
+#             bt_comm.connect((self.device.addr, self.device.port))
             
-            while self.connected:
-                bt_comm.send(self.connection_message.encode())
-                msg_recv = self._init_process_data(bt_comm.recv(1024))
+#             while self.connected:
+#                 bt_comm.send(self.connection_message.encode())
+#                 msg_recv = self._init_process_data(bt_comm.recv(1024))
                 
-                if msg_recv:
-                    self._data_process(msg_recv)
+#                 if msg_recv:
+#                     self._data_process(msg_recv)
                 
-                self.connection_message = ""
+#                 self.connection_message = ""
+

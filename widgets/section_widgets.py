@@ -425,8 +425,15 @@ class SensorWidget(QWidget):
         self.main_layout.addWidget(widget_1)
         self.main_layout.addWidget(widget_2)
         
-        self.container.setDisabled(not self.sensor.comm_system.connected)
-        self.container.setToolTip(f"{self.sensor.meta_data.sensor_type} sensor disabled as there is not connection")
+        self.sensor.comm_system.connection_changed_signal.connect(self.connection_changed)
+    
+    def connection_changed(self, state: bool):
+        not_connected = not state
+        self.container.setDisabled(not_connected)
+        if not_connected:
+            self.container.setToolTip(f"{self.sensor.meta_data.sensor_type} sensor disabled as there is not connection")
+        else:
+            self.container.setToolTip("")
 
 class UltrasonicSonarWidget(QWidget):
     cmm_signal = pyqtSignal(list)
@@ -446,10 +453,10 @@ class UltrasonicSonarWidget(QWidget):
         
         self.labeled_field = LabeledField(self.sonar.meta_data.sensor_type, self.container)
         
-        activate_cb = QCheckBox("Activate Sonar")
-        activate_cb.clicked.connect(self.toogle_activation_state)
+        self.activate_cb = QCheckBox("Activate Sonar")
+        self.activate_cb.clicked.connect(self.toogle_activation_state)
         
-        layout.addWidget(activate_cb, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.activate_cb, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.labeled_field)
         
         ultrasonic_sensor_meta_info_widget, ultrasonic_sensor_meta_info_layout = create_widget(self.main_layout, QVBoxLayout)
@@ -471,13 +478,24 @@ class UltrasonicSonarWidget(QWidget):
         sonar_layout.addWidget(self.sonar_widget)
         sonar_layout.addWidget(LabeledField("Safety Distance", safety_slider, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum))
         
-        activate_cb.click()
-        activate_cb.click()
+        self.activate_cb.click()
+        self.activate_cb.click()
         
-        activate_cb.setDisabled(not self.sonar.comm_system.connected)
+        self.sonar.comm_system.connection_changed_signal.connect(self.connection_changed)
+        self.activate_cb.setDisabled(not self.sonar.comm_system.connected)
         
         if not self.sonar.comm_system.connected:
-            activate_cb.setToolTip("Disabled as there is no connection device")
+            self.activate_cb.setToolTip("Disabled as there is no connection device")
+    
+    def connection_changed(self, state: bool):
+        not_connected = not state
+        
+        self.activate_cb.setDisabled(not_connected)
+        
+        if not_connected:
+            self.activate_cb.setToolTip("Disabled as there is no connection device")
+        else:
+            self.activate_cb.setToolTip("")
     
     def safety_slider_moved(self, value: int):
         self.sonar_widget.safety_limit = value

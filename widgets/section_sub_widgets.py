@@ -5,7 +5,6 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QStackedWidget, QMessageBox
 )
 
-from communication import Bluetooth
 from PyQt6.QtCore import Qt, QPoint
 
 from others import *
@@ -17,12 +16,12 @@ from models.collection_data_models import *
 
 
 class BaseEditorWidget(QWidget):
-    def __init__(self, data: AppData, base: Prefect | Teacher, bluetooth: Bluetooth, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+    def __init__(self, data: AppData, base: Prefect | Teacher, comm_device: BaseCommSystem, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
         super().__init__()
         
         self.data = data
         self.base = base
-        self.bluetooth = bluetooth
+        self.comm_device = comm_device
         
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -71,14 +70,14 @@ class BaseEditorWidget(QWidget):
         self.sub_info_layout.addWidget(LabeledField("IUD", self.iud_label), alignment=Qt.AlignmentFlag.AlignLeft)
     
     def set_iud(self):
-        if not self.bluetooth.connected:
+        if not self.comm_device.connected:
             QMessageBox.warning(self.parentWidget(), "Not Connected", "No device connected")
         else:
             card_scanner_widget: CardScanScreenWidget = self.parent_widget.widget(self.card_scanner_index)
             card_scanner_widget.set_self(self.base, self.curr_index, self.iud_label)
             
             self.parent_widget.setCurrentIndex(self.card_scanner_index)
-            self.bluetooth.send_message("SCANNING")
+            self.comm_device.send_message("SCANNING")
     
     def view_punctuality_data(self):
         card_scanner_widget: StaffDataWidget = self.parent_widget.widget(self.staff_data_index)
@@ -255,16 +254,16 @@ class AttendancePrefectWidget(BaseAttendanceWidget):
 
 
 class EditorPrefectWidget(BaseEditorWidget):
-    def __init__(self, data: AppData, prefect: Prefect, bluetooth: Bluetooth, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
-        super().__init__(data, prefect, bluetooth, parent_widget, curr_index, card_scanner_index, staff_data_index)
+    def __init__(self, data: AppData, prefect: Prefect, comm_device: BaseCommSystem, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+        super().__init__(data, prefect, comm_device, parent_widget, curr_index, card_scanner_index, staff_data_index)
         self.container.setProperty("class", "EditorPrefectWidget")
         
         self.sub_info_layout.addWidget(LabeledField("Post", QLabel(self.base.post_name)), alignment=Qt.AlignmentFlag.AlignCenter)
         self.sub_info_layout.addWidget(LabeledField("Class", QLabel(self.base.cls.name)), alignment=Qt.AlignmentFlag.AlignRight)
 
 class EditorTeacherWidget(BaseEditorWidget):
-    def __init__(self, data: AppData, teacher: Teacher, bluetooth: Bluetooth, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
-        super().__init__(data, teacher, bluetooth, parent_widget, curr_index, card_scanner_index, staff_data_index)
+    def __init__(self, data: AppData, teacher: Teacher, comm_device: BaseCommSystem, parent_widget: QStackedWidget, curr_index: int, card_scanner_index: int, staff_data_index: int):
+        super().__init__(data, teacher, comm_device, parent_widget, curr_index, card_scanner_index, staff_data_index)
         self.container.setProperty("class", "EditorTeacherWidget")
         
         self.sub_info_layout.addWidget(LabeledField("Dept", QLabel(self.base.department.name), QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum), alignment=Qt.AlignmentFlag.AlignRight)
