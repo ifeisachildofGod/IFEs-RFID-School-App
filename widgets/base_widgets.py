@@ -7,13 +7,14 @@ from PyQt6.QtWidgets import (
 )
 
 import numpy as np
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt, QTimer
 from matplotlib.figure import Figure
 from models.data_models import CharacterName
+from PyQt6.QtGui import QPixmap, QPainter, QPen
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 from others import *
+
 
 class OptionsMenu(QFrame):
     def __init__(self, options: dict[str, Callable], parent=None):

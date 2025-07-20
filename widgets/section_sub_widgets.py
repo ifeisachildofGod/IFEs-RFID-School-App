@@ -163,7 +163,7 @@ class AttendanceTeacherWidget(BaseAttendanceWidget):
         layout_1_2_2.addWidget(LabeledField("Min", QLabel(("0" if data.time.min < 10 else "") + str(data.time.min))))
         layout_1_2_2.addWidget(LabeledField("Sec", QLabel(("0" if data.time.sec < 10 else "") + str(data.time.sec))))
         
-        layout_1_2.addWidget(LabeledField("Time", widget_1_2_2), height_size_policy=QSizePolicy.Policy.Maximum)
+        layout_1_2.addWidget(LabeledField("Time", widget_1_2_2, height_size_policy=QSizePolicy.Policy.Maximum))
         
         _, layout_2 = create_widget(self.main_layout, QVBoxLayout)
         

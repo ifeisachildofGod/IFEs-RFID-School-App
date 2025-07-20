@@ -1,4 +1,5 @@
 
+from typing import Any
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QApplication, QMainWindow,
@@ -12,6 +13,7 @@ from bleak import BleakScanner
 from PyQt6.QtCore import pyqtSignal
 from theme.theme import THEME_MANAGER
 from PyQt6.QtGui import QAction, QIntValidator
+from serial.tools.list_ports import comports
 
 from communication import *
 from models.data_models import *
@@ -19,15 +21,14 @@ from models.object_models import *
 from widgets.base_widgets import *
 from widgets.section_widgets import *
 
-
 class SetupScreen(QDialog):
-    update_signal = pyqtSignal(list)
+    update_signal = pyqtSignal(dict, list)
     
     def __init__(self, parent: 'Window'):
         super().__init__(parent=parent)
         
         self.setFocus()
-        # self.setModal(True)
+        self.setModal(True)
         self.setWindowTitle("Connection Config")
         self.setFixedWidth(700)
         self.setFixedHeight(500)
@@ -38,48 +39,63 @@ class SetupScreen(QDialog):
         self.data: dict[str, str | int | Literal["bluetooth", "serial"]] = {}
         
         
-        self.connection_thread = Thread(self.update_scans)
+        
+        self.connection_thread = Thread(self.refresh_all)
         self.connection_thread.crashed.connect(parent.connection_error_func)
         
         layout = QVBoxLayout()
         self.setLayout(layout)
         
+        
         self.container, self.main_layout = create_widget(layout, QVBoxLayout)
         
         
         serial_widget, serial_layout = create_widget(None, QVBoxLayout)
+        serial_widget.setProperty("class", "labeled-widget")
         bluetooth_widget, bluetooth_layout = create_widget(None, QVBoxLayout)
+        bluetooth_widget.setProperty("class", "labeled-widget")
         
         self.main_widget = TabViewWidget()
         self.main_widget.add("USB Serial Connection", serial_widget)
         self.main_widget.add("Bluetooth Connection", bluetooth_widget)
         
+        _, serial_upper_buttons_layout = create_widget(serial_layout, QHBoxLayout)
+        
+        serial_refresh_button = QPushButton("Refresh")
+        serial_refresh_button.clicked.connect(lambda: self.refresh("ser", serial_refresh_button))
         
         connect_button = QPushButton("Connect")
         connect_button.clicked.connect(self.serial_connect_clicked(-1))
         
-        serial_layout.addWidget(connect_button, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
+        serial_upper_buttons_layout.addWidget(serial_refresh_button, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        serial_upper_buttons_layout.addWidget(connect_button, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         
-        port_options = ["COM12", "COM7", "COM8"]
-        # port_options = ["COM3", "COM12 (Elecrow CrowPanel 7.0P)", "COM5", "COM12"]
+        self.port_options = []
         
-        _, serial_ports_layout = create_widget(serial_layout, QHBoxLayout)
+        serial_ports_widget, serial_ports_layout = create_widget(None, QHBoxLayout)
+        serial_layout.addWidget(serial_ports_widget)
         
         self.port_selector_widget = QComboBox()
-        self.port_selector_widget.addItems(port_options)
+        self.port_selector_widget.addItems(self.port_options)
         
         serial_ports_layout.addWidget(QLabel("Ports"))
         serial_ports_layout.addWidget(self.port_selector_widget)
         
         baud_options = ["9600", "119500", "336000", "7844000"]
         
-        _, serial_baud_rate_layout = create_widget(serial_layout, QHBoxLayout)
+        serial_baud_rate_widget, serial_baud_rate_layout = create_widget(None, QHBoxLayout)
+        serial_layout.addWidget(serial_baud_rate_widget, alignment=Qt.AlignmentFlag.AlignTop)
         
         self.baud_rate_selector_widget = QComboBox()
         self.baud_rate_selector_widget.addItems(baud_options)
         
         serial_baud_rate_layout.addWidget(QLabel("Baud rate"))
         serial_baud_rate_layout.addWidget(self.baud_rate_selector_widget)
+        
+        bluetooth_refesh_button = QPushButton("Refresh")
+        bluetooth_refesh_button.clicked.connect(lambda: self.refresh("bt", bluetooth_refesh_button))
+        
+        bluetooth_layout.addWidget(bluetooth_refesh_button, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         
         self.bluetooth_devices = []
         
@@ -99,34 +115,84 @@ class SetupScreen(QDialog):
         bluetooth_layout.addWidget(LabeledField("Bluetooth Devices", bluetooth_devices_widget, height_size_policy=QSizePolicy.Policy.Minimum))
         bluetooth_layout.addWidget(bt_port_edit_widget, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
         
-        continue_button = QPushButton("No connection")
-        continue_button.clicked.connect(self.serial_connect_clicked())
+        # continue_button = QPushButton("No connection")
+        # continue_button.clicked.connect(self.serial_connect_clicked())
         
-        self.main_layout.addWidget(continue_button, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        # self.main_layout.addWidget(continue_button, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
         self.main_layout.addWidget(self.main_widget)
         
-        self.update_signal.connect(self._update_scans)
-        self.connection_thread.start()
+        self.update_signal.connect(self._update_scan_timeout)
+        
+        self.refresh_tracker = {}
     
-    def _update_scans(self, data: list):
-        if dict(self.bluetooth_devices) != dict(data):
-            for index in range(len(self.bluetooth_devices)):
+    def refresh_all(self):
+        while not self.connected:
+            self.update_scans(None)
+            time.sleep(1)
+    
+    def refresh(self, refresh_type: str, refresh_button: QPushButton):
+        if self.refresh_tracker.get(refresh_type, [True, None])[0]:
+            if not self.refresh_tracker.get(refresh_type, False):
+                self.refresh_tracker[refresh_type] = [False, None]
+            
+            self.refresh_tracker[refresh_type][0] = False
+            refresh_button.setDisabled(True)
+            
+            self.refresh_tracker[refresh_type][1] = Thread(lambda: self.update_scans(refresh_type, refresh_type, refresh_button))
+            self.refresh_tracker[refresh_type][1].crashed.connect(print)
+            self.refresh_tracker[refresh_type][1].start()
+    
+    def exec(self):
+        # self.update_scans(None)
+        return super().exec()
+    
+    def _update_scan_timeout(self, data: dict[str, list[tuple[str, str]] | list[str]], args: list):
+        if not args:
+            refresh_type = None
+            load_spinner = None
+        else:
+            refresh_type, refresh_button = args
+        
+        if data.get("ser", None) is not None and self.port_options != data["ser"]:
+            self.port_options = data["ser"]
+            
+            for _ in range(len(self.port_selector_widget)):
+                self.port_selector_widget.removeItem(0)
+            
+            if self.port_selector_widget.currentText() in self.port_options:
+                self.port_options.insert(0, self.port_options.pop(self.port_options.index(self.port_selector_widget.currentText())))
+            
+            self.port_selector_widget.addItems(self.port_options)
+            if self.port_options:
+                self.port_selector_widget.setCurrentIndex(0)
+        
+        if data.get("bt", None) is not None and dict(self.bluetooth_devices) != dict(data["bt"]):
+            for _ in range(len(self.bluetooth_devices)):
                 prev_widget = self.bluetooth_devices_layout.itemAt(0).widget()
                 self.bluetooth_devices_layout.removeWidget(prev_widget)
                 prev_widget.deleteLater()
             
-            self.bluetooth_devices = data
+            self.bluetooth_devices = data["bt"]
             
             for index, (addr, name) in enumerate(self.bluetooth_devices):
                 self.add_bt_device(name, addr, index)
+        
+        if refresh_button is not None:
+            refresh_button.setDisabled(False)
+        if refresh_type is not None:
+            self.refresh_tracker[refresh_type][0] = True
     
-    def update_scans(self):
-        while not self.connected:
+    def update_scans(self, send_type: str | None = None, *args):
+        data = {}
+        
+        if send_type == "bt" or send_type is None:
             bt_data = bt_classic.discover_devices(lookup_names=True) + [(bl_info.address, bl_info.name) for bl_info in asyncio.run(self.ble_scanner.discover())]
-            
-            self.update_signal.emit(bt_data)
-            
-            time.sleep(1)
+            data["bt"] = bt_data
+        elif send_type == "ser" or send_type is None:
+            ser_data = [port.name for port in comports()]
+            data["ser"] = ser_data
+        
+        self.update_signal.emit(data, args)
     
     def add_bt_device(self, name: str, addr: str, index: int):
         connect_button = QPushButton("Connect")
@@ -146,7 +212,7 @@ class SetupScreen(QDialog):
         
         bt_device_layout.addWidget(connect_button, alignment=Qt.AlignmentFlag.AlignRight)
     
-    def serial_connect_clicked(self, a0: int | None = None):
+    def serial_connect_clicked(self, a0: int):
         def func():
             self.connected = True
             
@@ -158,12 +224,6 @@ class SetupScreen(QDialog):
                 self.data["connection-type"] = "bluetooth"
                 self.data["port"] = int(self.bt_port_edit.text())
                 self.data["addr"] = self.bluetooth_devices[a0][1]
-            elif a0 is None:
-                self.connected = False
-                
-                self.data["connection-type"] = None
-                self.data["port"] = None
-                self.data["addr"] = None
             
             self.close()
         
@@ -180,24 +240,6 @@ class SetupScreen(QDialog):
                 self.connected = False
                 self.data = {}
                 
-                a0.ignore()
-                return
-        elif self.data:
-            response = QMessageBox.question(self, "Data viewer mode", "Are you sure you want to just view the data",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            
-            if response == QMessageBox.StandardButton.Yes:
-                a0.accept()
-            else:
-                a0.ignore()
-                return
-        else:
-            response = QMessageBox.question(self, "Quit", "Are you sure you want to quit",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            
-            if response == QMessageBox.StandardButton.Yes:
-                a0.accept()
-            else:
                 a0.ignore()
                 return
             
@@ -274,14 +316,11 @@ class Window(QMainWindow):
         
         self.connection_set_up_screen.exec()
         
-        if not self.connection_set_up_screen.data:
-            exit(0)
-        
-        self.target_connector.device.port = self.connection_set_up_screen.data["port"]
+        self.target_connector.device.port = self.connection_set_up_screen.data.get("port", "")
         self.target_connector.device.addr = self.connection_set_up_screen.data.get("addr", None)
         self.target_connector.device.baud_rate = self.connection_set_up_screen.data.get("baud_rate", None)
         
-        if self.connection_set_up_screen.data["connection-type"] is not None:
+        if self.connection_set_up_screen.data.get("connection-type", None) is not None:
             self.target_connector.set_bluetooth(self.connection_set_up_screen.data["connection-type"] == "bluetooth")
             self.target_connector.set_serial(self.connection_set_up_screen.data["connection-type"] == "serial")
             
@@ -330,17 +369,17 @@ class Window(QMainWindow):
         file_menu.addActions([new_action, open_action, save_action, save_as_action, exit_action]) #type: ignore
         connection_menu.addActions([set_connection, break_connection])
     
-    def closeEvent(self, a0):
-        response = QMessageBox.question(self, "Quit", "Are you sure you want to quit",
-        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+    # def closeEvent(self, a0):
+    #     response = QMessageBox.question(self, "Quit", "Are you sure you want to quit",
+    #     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         
-        if response == QMessageBox.StandardButton.Yes:
-            a0.accept()
-        else:
-            a0.ignore()
-            return
+    #     if response == QMessageBox.StandardButton.Yes:
+    #         a0.accept()
+    #     else:
+    #         a0.ignore()
+    #         return
         
-        return super().closeEvent(a0)
+    #     return super().closeEvent(a0)
 
 
 if __name__ == "__main__":

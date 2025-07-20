@@ -431,7 +431,7 @@ class SensorWidget(QWidget):
         not_connected = not state
         self.container.setDisabled(not_connected)
         if not_connected:
-            self.container.setToolTip(f"{self.sensor.meta_data.sensor_type} sensor disabled as there is not connection")
+            self.container.setToolTip(f"{self.sensor.meta_data.sensor_type} sensor disabled as there is no connection")
         else:
             self.container.setToolTip("")
 

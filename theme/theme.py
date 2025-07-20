@@ -32,7 +32,7 @@ stylesheet = '''
     border-radius: 4px;
     padding: 6px 12px;
   }}
-
+  
   QPushButton:hover {{
     background-color: {primary_hover};
   }}
@@ -40,27 +40,49 @@ stylesheet = '''
   QPushButton:pressed {{
     background-color: {primary_pressed};
   }}
-
+  
+  QPushButton:disabled {{
+    background-color: {disabled};
+  }}
+  
   QComboBox {{
-    background-color: {input_bg};
-    color: {text};
-    border: 1px solid {input_border};
-    border-radius: 4px;
-    padding: 4px;
+      background-color: {input_bg};
+      color: {text};
+      border: 1px solid {border};
+      border-radius: 8px;
+      padding: 6px;
+      min-width: 120px;
   }}
-
+  QComboBox::drop-down {{
+      border: none;
+      padding-right: 6px;
+  }}
+  QComboBox::down-arrow {{
+      image: none;
+      border: none;
+      width: 12px;
+      height: 12px;
+      background-color: {primary};
+      border-radius: 100%;
+  }}
+  QComboBox::down-arrow:hover {{
+      background-color: {primary_hover};
+  }}
   QComboBox QAbstractItemView {{
-    background-color: {input_bg};
-    selection-background-color: {highlight};
+      background-color: {bg};
+      border: 1px solid {border};
+      selection-background-color: {primary};
+      selection-color: {text};
   }}
-
+  
   QCheckBox, QRadioButton {{
     spacing: 6px;
   }}
 
-  QCheckBox::indicator, QRadioButton::indicator {{
+  QRadioButton::indicator {{
     width: 14px;
     height: 14px;
+    border-radius: 4px;
   }}
 
   QScrollBar {{
@@ -104,11 +126,16 @@ stylesheet = '''
     background: {input_bg};
     font-weight: bold;
   }}
-
+  
   QMenu, .option-menu {{
     background-color: {input_bg};
     color: {text};
     border: 1px solid {border};
+    padding: 0px
+  }}
+  
+  QMenu::item:selected {{
+    background-color: {highlight};
   }}
   
   .option-menu QPushButton {{
@@ -119,10 +146,6 @@ stylesheet = '''
   }}
   
   .option-menu QPushButton:hover {{
-    background-color: {highlight};
-  }}
-
-  QMenu::item:selected {{
     background-color: {highlight};
   }}
 
@@ -139,6 +162,12 @@ stylesheet = '''
       border-radius: 0px;
       border-left: 3px solid {bg2};
       background-color: {bg2};
+      margin: 0px;
+  }}
+  
+  QPushButton.VerticalTab:hover {{
+    border-top-color: {hover2};
+    background-color: {hover2};
   }}
   
   QPushButton.VerticalTab:checked {{
@@ -156,6 +185,7 @@ stylesheet = '''
       border-top: 3px solid {bg2};
       background-color: {bg2};
       border-radius: 0px;
+      margin: 0px;
   }}
   
   QPushButton.HorizontalTab:hover {{

@@ -107,14 +107,15 @@ class BaseCommSystem:
                 
                 if serial_target.in_waiting > 0:
                     msg_recv = self._init_process_data(serial_target.readline())
+                    
                     if msg_recv:
+                        print(msg_recv)
                         self._data_process(msg_recv)
                 
                 self.connection_message = ""
             
             serial_target.close()
-        
-        if self.bluetooth_mode:
+        elif self.bluetooth_mode:
             assert self.device.baud_rate is not None, "Invalid device"
             
             with socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM) as bt_comm:
